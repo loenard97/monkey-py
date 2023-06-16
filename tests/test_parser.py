@@ -1,4 +1,6 @@
-from ..src.parser import Lexer, Parser
+import pytest
+
+from pymonkey.parser import Lexer, Parser
 
 
 def test_parser():
@@ -8,9 +10,5 @@ def test_parser():
 
     program = parser.parse_program()
 
-    print(program)
-
-
-if __name__ == "__main__":
-    test_parser()
+    assert str(program) == "let x = 3"
 

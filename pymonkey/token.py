@@ -56,3 +56,17 @@ class Token:
         self.type = type
         self.literal = literal
 
+
+    def __str__(self):
+        return f"{self.type}.{self.literal}"
+
+
+    def __eq__(self, __value: object) -> bool:
+        if isinstance(__value, Token):
+            return self.type == __value.type and self.literal == __value.type
+        
+        if isinstance(__value, str):
+            return self.type == __value or self.literal == __value
+
+        return False
+

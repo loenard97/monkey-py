@@ -28,11 +28,15 @@ class Precedence(Enum):
                 return cls.Lowest
 
 
+class ParserError:
+    pass
+
+
 class Parser:
 
     def __init__(self, lexer: Lexer):
         self.lexer = lexer
-        self.errors = []
+        self.errors: List[ParserError] = []
         self.cur_token = Token(ILLEGAL, ILLEGAL)
         self.peek_token = Token(ILLEGAL, ILLEGAL)
 
@@ -76,7 +80,7 @@ class Parser:
             self.peek_token = Token(EOF, EOF)
 
     def expect_peek(self, token_type) -> bool:
-        if self.next_token.type == token_type:
+        if self.peek_token == token_type:
             self.next_token()
             return True
         return False
@@ -97,16 +101,16 @@ class Parser:
         return Identifier(token, value)
 
     def parse_statement(self) -> Statement:
-        match self.cur_token.type:
-            case "let":
+        match self.cur_token.type, self.cur_token.literal:
+            case "Keyword", "let":
                 return self.parse_let_statement()
-            case "return":
+            case "Keyword", "return":
                 return self.parse_return_statement()
             case _:
                 return self.parse_expression_statement()
 
     def parse_let_statement(self) -> Statement:
-        if self.cur_token.type != LET:
+        if self.cur_token != LET:
             raise UnknownTokenException
         token = self.cur_token
 
@@ -120,6 +124,8 @@ class Parser:
         self.next_token()
 
         value = self.parse_expression(Precedence.Lowest)
+        if value is None:
+            raise UnknownTokenException
 
         if self.peek_token.type == SEMICOLON:
             self.next_token()
@@ -131,6 +137,8 @@ class Parser:
         self.next_token()
 
         value = self.parse_expression(Precedence.Lowest)
+        if value is None:
+            raise UnknownTokenException
 
         if self.peek_token.type == SEMICOLON:
             self.next_token()
@@ -141,6 +149,8 @@ class Parser:
         token = self.cur_token
 
         expression = self.parse_expression(Precedence.Lowest)
+        if expression is None:
+            raise UnknownTokenException
 
         if self.peek_token.type == SEMICOLON:
             self.next_token()
@@ -159,6 +169,8 @@ class Parser:
         self.next_token()
 
         right = self.parse_expression(Precedence.Prefix)
+        if right is None:
+            raise UnknownTokenException
 
         return Prefix(token, operator, right)
 
@@ -172,6 +184,8 @@ class Parser:
         self.next_token()
 
         expression = self.parse_expression(Precedence.Lowest)
+        if expression is None:
+            raise UnknownTokenException
 
         if self.peek_token.type != LPAREN:
             raise UnknownTokenException
@@ -187,6 +201,8 @@ class Parser:
         self.next_token()
 
         condition = self.parse_expression(Precedence.Lowest)
+        if condition is None:
+            raise UnknownTokenException
 
         if not self.expect_peek(RPAREN):
             raise UnknownTokenException
@@ -205,7 +221,7 @@ class Parser:
             alternative = self.parse_block_statement()
 
         else:
-            alternative = EmptyStatement()
+            alternative = None
 
         return If(token, condition, consequence, alternative)
 
@@ -225,7 +241,7 @@ class Parser:
         return Function(token, parameters, body)
 
     def parse_function_parameters(self) -> List[Expression]:
-        identifier = []
+        identifier: List[Expression] = []
 
         if self.peek_token.type == RPAREN:
             self.next_token()
@@ -262,6 +278,8 @@ class Parser:
         self.next_token()
 
         right = self.parse_expression(precedence)
+        if right is None:
+            raise UnknownTokenException
 
         return Infix(token, operator, left, right)
 
@@ -272,20 +290,26 @@ class Parser:
         return Call(token, function, arguments)
 
     def parse_call_arguments(self) -> List[Expression]:
-        args = []
+        args: List[Expression] = []
 
         if self.peek_token.type == RPAREN:
             self.next_token()
             return args
 
         self.next_token()
-        args.append(self.parse_expression(Precedence.Lowest))
+        arg = self.parse_expression(Precedence.Lowest)
+        if arg is None:
+            raise UnknownTokenException
+        args.append(arg)
 
         while self.peek_token.type == COMMA:
             self.next_token()
             self.next_token()
 
-            args.append(self.parse_expression(Precedence.Lowest))
+            arg = self.parse_expression(Precedence.Lowest)
+            if arg is None:
+                raise UnknownTokenException
+            args.append(arg)
 
             if not self.expect_peek(RPAREN):
                 raise UnknownTokenException
@@ -305,18 +329,24 @@ class Parser:
 
         return BlockStatement(token, statemtens)
 
-    def parse_expression(self, precedence: Precedence) -> Expression:
+    def parse_expression(self, precedence: Precedence) -> Expression | None:
         token = self.cur_token
 
-        left = EmptyExpression()
-        left_fn = self.prefix_parse_fn[token.type]
+        left = None
+        try:
+            left = self.prefix_parse_fn[token.type]()
+        except KeyError:
+            return None
 
         peek_precedence = Precedence.from_token(self.peek_token)
 
         while self.peek_token.type != SEMICOLON and precedence.value < peek_precedence.value:
-            infix_fn = self.infix_parse_fn[self.peek_token.type]
+            try:
+                infix = self.infix_parse_fn[self.peek_token.type]
+            except KeyError:
+                return left
             self.next_token()
-            left = infix_fn(self, left_fn)
+            left = infix(left)
 
         return left
 

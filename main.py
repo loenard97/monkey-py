@@ -1,5 +1,5 @@
-from src.lexer import Lexer
-from src.parser import Parser
+from pymonkey.lexer import Lexer
+from pymonkey.parser import Parser
 
 
 def main():
