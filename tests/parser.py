@@ -1,8 +1,7 @@
-from src.lexer import Lexer
-from src.parser import Parser
+from ..src.parser import Lexer, Parser
 
 
-def main():
+def test_parser():
     input = "let x = 3;"
     lexer = Lexer(input)
     parser = Parser(lexer)
@@ -12,6 +11,6 @@ def main():
     print(program)
 
 
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    test_parser()
 
