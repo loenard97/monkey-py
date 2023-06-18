@@ -3,7 +3,7 @@ from pymonkey.parser import Parser
 
 
 def main():
-    input = "let x = 3;"
+    input = "add(x, y);"
     lexer = Lexer(input)
     parser = Parser(lexer)
 

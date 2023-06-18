@@ -1,19 +1,26 @@
 from typing import List
-from abc import ABC
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 from .token import *
 
 
 class Node(ABC):
-    pass
+
+    token: Token = NotImplemented 
+
+    @abstractmethod
+    def __str__(self):
+        raise NotImplementedError
 
 
 class Statement(Node):
+
     pass
 
 
 class Expression(Node):
+
     pass
 
 
@@ -29,8 +36,8 @@ class Program:
 @dataclass
 class Identifier(Expression):
 
-    token: Token
     value: str
+    token: Token
 
     def __str__(self):
         return f"{self.value}"
@@ -39,39 +46,39 @@ class Identifier(Expression):
 @dataclass
 class LetStatement(Statement):
     
-    token: Token
     name: Identifier
     value: Expression
+    token: Token
     
     def __str__(self):
-        return f"let {self.name} = {self.value}"
+        return f"let {self.name} = {self.value};"
 
 
 @dataclass
 class ReturnStatement(Statement):
 
-    token: Token
     value: Expression
+    token: Token
 
     def __str__(self):
-        return f"return {self.value}"
+        return f"return {self.value};"
 
 
 @dataclass
 class ExpressionStatement(Statement):
 
-    token: Token
     expression: Expression
+    token: Token
 
     def __str__(self):
-        return self.expression.__str__()
+        return self.expression.__str__() + ";"
 
 
 @dataclass
 class BlockStatement(Statement):
 
-    token: Token
     statements: List[Statement]
+    token: Token
 
     def __str__(self):
         return '\n'.join(str(s) for s in self.statements)
@@ -80,66 +87,82 @@ class BlockStatement(Statement):
 # ----- Expressions ----- #
 
 @dataclass
-class Boolean(Expression):
+class BooleanExpression(Expression):
 
-    token: Token
     value: bool
+    token: Token
 
     def __str__(self):
-        return f"{self.value}"
+        return f"{self.value}".lower()
 
 
 @dataclass
-class Integer(Expression):
+class IntegerExpression(Expression):
 
-    token: Token
     value: int
+    token: Token
 
     def __str__(self):
         return f"{self.value}"
 
 
 @dataclass
-class Prefix(Expression):
+class PrefixExpression(Expression):
 
-    token: Token
     operator: str
     right: Expression
+    token: Token
 
     def __str__(self):
         return f"{self.operator}{self.right}"
 
 
 @dataclass
-class Infix(Expression):
+class InfixExpression(Expression):
 
-    token: Token
     operator: str
     left: Expression
     right: Expression
+    token: Token
+
+    def __str__(self):
+        return f"{self.left} {self.operator} {self.right}"
 
 
 @dataclass
-class If(Expression):
+class IfExpression(Expression):
 
-    token: Token
     condition: Expression
     consequence: BlockStatement
     alternative: BlockStatement | None
+    token: Token
+
+    def __str__(self):
+        if self.alternative is None:
+            return f"if ({self.condition}) {{ {self.consequence} }}"
+        return f"if ({self.condition}) {{ {self.consequence} }} else {{ {self.alternative} }}"
 
 
 @dataclass
-class Function(Expression):
+class FunctionExpression(Expression):
 
-    token: Token
     parameters: List[Expression]
     body: BlockStatement
+    token: Token
+
+    def __str__(self):
+        params = ', '.join([str(p) for p in self.parameters])
+        return f"{self.token.literal}({params}) {{ {self.body} }}"
 
 
 @dataclass
-class Call(Expression):
+class CallExpression(Expression):
 
-    token: Token
     function: Expression
     arguments: List[Expression]
+    token: Token
+
+    def __str__(self):
+        args = ', '.join([str(a) for a in self.arguments])
+        return f"{self.function}({args})"
 
