@@ -2,7 +2,7 @@ from typing import List
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from .token import *
+from pymonkey.token import *
 
 
 class Node(ABC):
