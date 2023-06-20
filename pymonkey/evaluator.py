@@ -3,7 +3,10 @@ from typing import List
 from pymonkey.ast import BlockStatement, BooleanExpression, CallExpression, Expression, ExpressionStatement, FunctionExpression, Identifier, IfExpression, InfixExpression, IntegerExpression, LetStatement, Node, PrefixExpression, Program, ReturnStatement
 from pymonkey.object import IObject, ErrorObject, IntegerObject, BooleanObject, Environment, ReturnValueObject, NullObject, FunctionObject, ValuedObject
 
+from pymonkey.util import flog
 
+
+@flog
 def eval(node: Node, env: Environment) -> IObject:
     if isinstance(node, Program):
         return eval_program(node, env)
@@ -79,6 +82,7 @@ def eval(node: Node, env: Environment) -> IObject:
     return NullObject()
 
 
+@flog
 def eval_program(program: Program, env: Environment) -> IObject:
     result = NullObject()
 
@@ -94,6 +98,7 @@ def eval_program(program: Program, env: Environment) -> IObject:
     return result
 
 
+@flog
 def eval_block_statement(block: BlockStatement, env: Environment) -> IObject:
     result = NullObject()
 
@@ -106,12 +111,14 @@ def eval_block_statement(block: BlockStatement, env: Environment) -> IObject:
     return result
 
 
+@flog
 def native_bool_to_boolean_object(input: bool) -> BooleanObject:
     if input:
         return BooleanObject(True)
     return BooleanObject(False)
 
 
+@flog
 def eval_prefix_expression(operator: str, right: IObject) -> IObject:
     match operator:
         case "!":
@@ -124,35 +131,38 @@ def eval_prefix_expression(operator: str, right: IObject) -> IObject:
             return ErrorObject("unknown operator")
 
 
+@flog
 def eval_infix_expression(operator: str, left: IObject, right: IObject) -> IObject:
-    match operator, left.type, right.type:
-        case _, "INTEGER_OBJ", "INTEGER_OBJ":
-            return eval_integer_infix_expression(operator, left, right)
+    if isinstance(left, IntegerObject) and isinstance(right, IntegerObject):
+        return eval_integer_infix_expression(operator, left, right)
 
-        case "==", _, _:
-            return BooleanObject(left == right)
+    if operator == "==":
+        return BooleanObject(left == right)
 
-        case "!=", _, _:
-            return BooleanObject(left != right)
+    if operator == "!=":
+        return BooleanObject(left != right)
 
-    if left.type != right.type:
-        return ErrorObject("type mismatch")
+    if type(left) != type(right):
+        return ErrorObject(f"type mismatch in {type(left)} {operator} {type(right)}")
 
-    return ErrorObject("unknown operator")
+    return ErrorObject("unknown operator {type(left)} {operator} {type(right)}")
 
 
+@flog
 def eval_bang_operator_expression(right: IObject) -> IObject:
     if isinstance(right, BooleanObject):
         return BooleanObject(not right.value)
     return BooleanObject(False)
 
 
+@flog
 def eval_minus_operator_expression(right: IObject) -> IObject:
     if isinstance(right, IntegerObject):
         return IntegerObject(-right.value)
     return ErrorObject("unknown operator")
 
 
+@flog
 def eval_integer_infix_expression(operator: str, left: IObject, right: IObject) -> IObject:
     if isinstance(left, ValuedObject) and isinstance(right, ValuedObject):
         if operator == "+":
@@ -182,6 +192,7 @@ def eval_integer_infix_expression(operator: str, left: IObject, right: IObject) 
     return ErrorObject("unknown operator")
 
 
+@flog
 def eval_if_expression(ie: IfExpression, env: Environment) -> IObject:
     condition = eval(ie.condition, env)
     if isinstance(condition, ErrorObject):
@@ -197,6 +208,7 @@ def eval_if_expression(ie: IfExpression, env: Environment) -> IObject:
         return NullObject()
 
 
+@flog
 def eval_identifier(node: Identifier, env: Environment) -> IObject:
     try:
         val = env.get(node.value)
@@ -206,6 +218,7 @@ def eval_identifier(node: Identifier, env: Environment) -> IObject:
         return val
 
 
+@flog
 def is_truthy(obj: IObject) -> bool:
     if isinstance(obj, NullObject):
         return False
@@ -216,6 +229,7 @@ def is_truthy(obj: IObject) -> bool:
     return True
 
 
+@flog
 def eval_expressions(exps: List[Expression], env: Environment) -> List[IObject]:
     result = []
     
@@ -229,6 +243,7 @@ def eval_expressions(exps: List[Expression], env: Environment) -> List[IObject]:
     return result
 
 
+@flog
 def apply_function(fn: FunctionObject, args: List[IObject]) -> IObject:
     if fn is None:
         return ErrorObject("not a function")
@@ -241,6 +256,7 @@ def apply_function(fn: FunctionObject, args: List[IObject]) -> IObject:
     return evaluated
 
 
+@flog
 def extend_function_env(fn: FunctionObject, args: List[IObject]) -> Environment:
     env = Environment.new_enclosed(fn.env)
 

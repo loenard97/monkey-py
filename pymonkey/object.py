@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List
+from typing import List, Union
 
 from pymonkey.ast import BlockStatement, Expression, Identifier
 
@@ -95,11 +95,14 @@ class FunctionObject(IObject):
 class Environment:
 
     store: dict
-    outer: "Environment" | None
+    outer: Union["Environment", None]
 
     def __init__(self):
         self.store = {}
         self.outer = None
+
+    def __str__(self):
+        return f"Environment <{self.store}>"
 
     @classmethod
     def new_enclosed(cls, outer: "Environment") -> "Environment":

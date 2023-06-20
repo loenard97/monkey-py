@@ -1,8 +1,10 @@
 from enum import Enum, auto
 
-from .ast import *
-from .token import *
-from .lexer import *
+from pymonkey.ast import *
+from pymonkey.token import *
+from pymonkey.lexer import *
+
+from pymonkey.util import flog
 
 
 class UnknownTokenException(Exception):
@@ -51,6 +53,10 @@ class Parser:
         self.next_token()
         self.next_token()
 
+    def __str__(self):
+        return f"Parser <{self.cur_token}>"
+
+    @flog
     def prefix_parse_fn(self, token: Token):
         match token.type, token.literal:
             case "Identifier", _:
@@ -76,7 +82,9 @@ class Parser:
             case _:
                 raise UnknownTokenException
 
+    @flog
     def infix_parse_fn(self, token: Token):
+        print(f"infix {token.type} {token.literal}")
         match token.type, token.literal:
             case "+" | "-" | "/" | "*" | "==" | "!=" | "<" | ">", _:
                 return self.parse_infix_expression
@@ -85,8 +93,9 @@ class Parser:
                 return self.parse_call_expression
 
             case _:
-                raise UnknownTokenException
+                return None
 
+    @flog
     def next_token(self):
         self.cur_token = self.peek_token
         try:
@@ -94,12 +103,15 @@ class Parser:
         except StopIteration:
             self.peek_token = Token(EOF, EOF)
 
+    @flog
     def expect_peek(self, token_type) -> bool:
         if self.peek_token == token_type:
             self.next_token()
             return True
         return False
 
+
+    @flog
     def parse_program(self) -> Program:
         statements = []
 
@@ -109,12 +121,14 @@ class Parser:
 
         return Program(statements)
 
+    @flog
     def parse_identifier(self) -> Expression:
         token = self.cur_token
         value = token.literal
 
         return Identifier(value, token)
 
+    @flog
     def parse_statement(self) -> Statement:
         match self.cur_token.type, self.cur_token.literal:
             case "Keyword", "let":
@@ -124,6 +138,7 @@ class Parser:
             case _:
                 return self.parse_expression_statement()
 
+    @flog
     def parse_let_statement(self) -> Statement:
         if self.cur_token != LET:
             raise UnknownTokenException
@@ -147,6 +162,7 @@ class Parser:
 
         return LetStatement(name, value, token)
 
+    @flog
     def parse_return_statement(self) -> Statement:
         token = self.cur_token
         self.next_token()
@@ -160,6 +176,7 @@ class Parser:
 
         return ReturnStatement(value, token)
 
+    @flog
     def parse_expression_statement(self) -> Statement:
         token = self.cur_token
 
@@ -172,11 +189,13 @@ class Parser:
 
         return ExpressionStatement(expression, token)
 
+    @flog
     def parse_integer_literal(self) -> Expression:
         token = self.cur_token
         value = int(token.literal)
         return IntegerExpression(value, token)
 
+    @flog
     def parse_prefix_expression(self) -> Expression:
         token = self.cur_token
         operator = token.literal
@@ -189,24 +208,28 @@ class Parser:
 
         return PrefixExpression(operator, right, token)
 
+    @flog
     def parse_boolean(self) -> Expression:
         token = self.cur_token
         value = self.cur_token.literal == "true"
 
         return BooleanExpression(value, token)
 
+    @flog
     def parse_grouped_expression(self) -> Expression:
         self.next_token()
 
         expression = self.parse_expression(Precedence.Lowest)
+        print(f"group {expression}")
         if expression is None:
             raise UnknownTokenException
 
-        if self.peek_token.type != LPAREN:
+        if not self.expect_peek(RPAREN):
             raise UnknownTokenException
 
         return expression
 
+    @flog
     def parse_if_expression(self) -> Expression:
         token = self.cur_token
 
@@ -240,6 +263,7 @@ class Parser:
 
         return IfExpression(condition, consequence, alternative, token)
 
+    @flog
     def parse_function_literal(self) -> Expression:
         token = self.cur_token
 
@@ -256,6 +280,7 @@ class Parser:
 
         return FunctionExpression(parameters, body, token)
 
+    @flog
     def parse_function_parameters(self) -> List[Expression]:
         identifier: List[Expression] = []
 
@@ -286,6 +311,7 @@ class Parser:
 
         return identifier
 
+    @flog
     def parse_infix_expression(self, left: Expression) -> Expression:
         token = self.cur_token
         operator = token.literal
@@ -293,18 +319,24 @@ class Parser:
 
         self.next_token()
 
+        print("parse expr")
         right = self.parse_expression(precedence)
         if right is None:
+            print("right is none")
+            print(left)
+            print(precedence)
             raise UnknownTokenException
 
         return InfixExpression(operator, left, right, token)
 
+    @flog
     def parse_call_expression(self, function: Expression) -> Expression:
         token = self.cur_token
         arguments = self.parse_call_arguments()
 
         return CallExpression(function, arguments, token)
 
+    @flog
     def parse_call_arguments(self) -> List[Expression]:
         args: List[Expression] = []
 
@@ -333,6 +365,7 @@ class Parser:
 
         return args
 
+    @flog
     def parse_block_statement(self) -> BlockStatement:
         token = self.cur_token
         statemtens = []
@@ -346,6 +379,7 @@ class Parser:
 
         return BlockStatement(statemtens, token)
 
+    @flog
     def parse_expression(self, precedence: Precedence) -> Expression | None:
         token = self.cur_token
 
@@ -358,9 +392,10 @@ class Parser:
         peek_precedence = Precedence.from_token(self.peek_token)
 
         while self.peek_token.type != SEMICOLON and precedence.value < peek_precedence.value:
-            try:
-                infix = self.infix_parse_fn(self.peek_token)
-            except KeyError:
+            print("while")
+            infix = self.infix_parse_fn(self.peek_token)
+            if infix is None:
+                print(f"infix is None return {left}")
                 return left
             self.next_token()
             left = infix(left)

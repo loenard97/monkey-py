@@ -25,9 +25,10 @@ class Expression(Node):
 
 
 @dataclass
-class Program:
+class Program(Node):
     
     statements: List[Statement]
+    token = Token(ILLEGAL, ILLEGAL)
 
     def __str__(self):
         return '\n'.join(str(s) for s in self.statements)

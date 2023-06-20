@@ -1,3 +1,4 @@
+from typing import List
 from pymonkey.parser import Lexer, Parser
 
 
@@ -8,8 +9,7 @@ def test_let():
         "let foobar = y;",
     ]
 
-    for e in input:
-        run_parser(e)
+    run_parser(input)
 
 
 def test_return():
@@ -19,8 +19,7 @@ def test_return():
         "return foobar;",
     ]
 
-    for e in input:
-        run_parser(e)
+    run_parser(input)
 
 
 def test_prefix():
@@ -33,8 +32,7 @@ def test_prefix():
         "!false;",
     ]
 
-    for e in input:
-        run_parser(e)
+    run_parser(input)
 
 
 def test_infix():
@@ -49,8 +47,39 @@ def test_infix():
         "5 != 5;",
     ]
 
-    for e in input:
-        run_parser(e)
+    run_parser(input)
+
+
+def test_math():
+    input = [
+        "-a * b;",
+        "!-a;",
+        "a + b + c;",
+        "a + b - c;",
+        "a * b * c;",
+        "a * b / c;",
+        "a + b / c;",
+        "a + b * c + d / e - f;",
+        # "3 + 4; -5 * 5;",
+        "5 > 4 == 3 < 4;",
+        "5 < 4 != 3 > 4;",
+        "3 + 4 * 5 == 3 * 1 + 4 * 5;",
+        "true;",
+        "false;",
+        "3 > 5 == false;",
+        "3 < 5 == true;",
+        "1 + (2 + 3) + 4;",
+        "(5 + 5) * 2;",
+        "2 / (5 + 5);",
+        "(5 + 5) * 2 * (5 + 5);",
+        "-(5 + 5);",
+        "!(true == true);",
+        "a + add(b * c) + d;",
+        "add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8));",
+        "add(a + b + c * d / f + g);",
+    ]
+
+    run_parser(input)
 
 
 def test_if():
@@ -59,8 +88,7 @@ def test_if():
         "if (false) { return 1; } else { return 0; };",
     ]
     
-    for e in input:
-        run_parser(e)
+    run_parser(input)
 
 
 def test_function():
@@ -69,14 +97,14 @@ def test_function():
         "add(x, y);",
     ]
 
-    for e in input:
-        run_parser(e)
+    run_parser(input)
 
 
-def run_parser(input: str):
-    lexer = Lexer(input)
-    parser = Parser(lexer)
-    program = parser.parse_program()
+def run_parser(test: List[str]):
+    for i, t in enumerate(test):
+        lexer = Lexer(t)
+        parser = Parser(lexer)
+        program = parser.parse_program()
 
-    assert str(program) == input
+        assert str(program) == t, f"Test {i} failed: {t}"
 
