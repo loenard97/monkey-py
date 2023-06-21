@@ -2,141 +2,139 @@ from typing import List
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from pymonkey.token import *
+from pymonkey.mtoken import MToken, ILLEGAL
 
 
-class Node(ABC):
+class MNode(ABC):
 
-    token: Token = NotImplemented 
+    token: MToken = NotImplemented 
 
     @abstractmethod
     def __str__(self):
         raise NotImplementedError
 
 
-class Statement(Node):
+class MStatement(MNode):
 
     pass
 
 
-class Expression(Node):
+class MExpression(MNode):
 
     pass
 
 
 @dataclass
-class Program(Node):
+class MProgram(MNode):
     
-    statements: List[Statement]
-    token = Token(ILLEGAL, ILLEGAL)
+    statements: List[MStatement]
+    token = MToken(ILLEGAL, ILLEGAL, '', 0, 0)
 
     def __str__(self):
         return '\n'.join(str(s) for s in self.statements)
 
 
 @dataclass
-class Identifier(Expression):
+class MIdentifier(MExpression):
 
     value: str
-    token: Token
+    token: MToken
 
     def __str__(self):
         return f"{self.value}"
 
 
 @dataclass
-class LetStatement(Statement):
+class MLetStatement(MStatement):
     
-    name: Identifier
-    value: Expression
-    token: Token
+    name: MIdentifier
+    value: MExpression
+    token: MToken
     
     def __str__(self):
         return f"let {self.name} = {self.value};"
 
 
 @dataclass
-class ReturnStatement(Statement):
+class MReturnStatement(MStatement):
 
-    value: Expression
-    token: Token
+    value: MExpression
+    token: MToken
 
     def __str__(self):
         return f"return {self.value};"
 
 
 @dataclass
-class ExpressionStatement(Statement):
+class MExpressionStatement(MStatement):
 
-    expression: Expression
-    token: Token
+    expression: MExpression
+    token: MToken
 
     def __str__(self):
         return self.expression.__str__() + ";"
 
 
 @dataclass
-class BlockStatement(Statement):
+class MBlockStatement(MStatement):
 
-    statements: List[Statement]
-    token: Token
+    statements: List[MStatement]
+    token: MToken
 
     def __str__(self):
         return '\n'.join(str(s) for s in self.statements)
 
 
-# ----- Expressions ----- #
-
 @dataclass
-class BooleanExpression(Expression):
+class MBooleanExpression(MExpression):
 
     value: bool
-    token: Token
+    token: MToken
 
     def __str__(self):
         return f"{self.value}".lower()
 
 
 @dataclass
-class IntegerExpression(Expression):
+class MIntegerExpression(MExpression):
 
     value: int
-    token: Token
+    token: MToken
 
     def __str__(self):
         return f"{self.value}"
 
 
 @dataclass
-class PrefixExpression(Expression):
+class MPrefixExpression(MExpression):
 
     operator: str
-    right: Expression
-    token: Token
+    right: MExpression
+    token: MToken
 
     def __str__(self):
         return f"{self.operator}{self.right}"
 
 
 @dataclass
-class InfixExpression(Expression):
+class MInfixExpression(MExpression):
 
     operator: str
-    left: Expression
-    right: Expression
-    token: Token
+    left: MExpression
+    right: MExpression
+    token: MToken
 
     def __str__(self):
         return f"{self.left} {self.operator} {self.right}"
 
 
 @dataclass
-class IfExpression(Expression):
+class MIfExpression(MExpression):
 
-    condition: Expression
-    consequence: BlockStatement
-    alternative: BlockStatement | None
-    token: Token
+    condition: MExpression
+    consequence: MBlockStatement
+    alternative: MBlockStatement | None
+    token: MToken
 
     def __str__(self):
         if self.alternative is None:
@@ -145,11 +143,11 @@ class IfExpression(Expression):
 
 
 @dataclass
-class FunctionExpression(Expression):
+class MFunctionExpression(MExpression):
 
-    parameters: List[Expression]
-    body: BlockStatement
-    token: Token
+    parameters: List[MExpression]
+    body: MBlockStatement
+    token: MToken
 
     def __str__(self):
         params = ', '.join([str(p) for p in self.parameters])
@@ -157,11 +155,11 @@ class FunctionExpression(Expression):
 
 
 @dataclass
-class CallExpression(Expression):
+class MCallExpression(MExpression):
 
-    function: Expression
-    arguments: List[Expression]
-    token: Token
+    function: MExpression
+    arguments: List[MExpression]
+    token: MToken
 
     def __str__(self):
         args = ', '.join([str(a) for a in self.arguments])

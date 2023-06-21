@@ -1,17 +1,24 @@
-from pymonkey.lexer import Lexer
-from pymonkey.object import Environment
-from pymonkey.parser import Parser
-from pymonkey.evaluator import eval
+import sys
+
+from pymonkey.mlexer import MLexer
+from pymonkey.mobject import MEnvironment
+from pymonkey.mparser import Parser
+from pymonkey.mevaluator import eval
 
 
 def main():
-    input = "1 + ( 2 + 3 ) + 4;"
-    lexer = Lexer(input)
+    with open(sys.argv[1], 'r') as file:
+        inp = file.read()
+
+    lexer = MLexer(inp)
     parser = Parser(lexer)
 
     program = parser.parse_program()
+    env = MEnvironment()
 
-    print(program)
+    evaluated = eval(program, env)
+
+    print(evaluated)
 
 
 if __name__ == '__main__':

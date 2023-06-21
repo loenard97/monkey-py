@@ -1,10 +1,9 @@
 from enum import Enum, auto
+from typing import List
 
-from pymonkey.ast import *
-from pymonkey.token import *
-from pymonkey.lexer import *
-
-from pymonkey.util import flog
+from pymonkey.mast import MProgram, MExpression, MIdentifier, MStatement, MLetStatement, MReturnStatement, MExpressionStatement, MIntegerExpression, MPrefixExpression, MBooleanExpression, MFunctionExpression, MIfExpression, MInfixExpression, MCallExpression, MBlockStatement
+from pymonkey.mtoken import MToken, ILLEGAL, EOF, LET, COMMA, SEMICOLON, LPAREN, RPAREN, LBRACE, RBRACE, ASSIGN, ELSE
+from pymonkey.mlexer import MLexer
 
 
 class UnknownTokenException(Exception):
@@ -22,7 +21,7 @@ class Precedence(Enum):
     Call        = auto()
 
     @classmethod
-    def from_token(cls, token: Token):
+    def from_token(cls, token: MToken):
         match token.type:
             case "==" | "!=":
                 return cls.Equals
@@ -44,11 +43,11 @@ class ParserError:
 
 class Parser:
 
-    def __init__(self, lexer: Lexer):
+    def __init__(self, lexer: MLexer):
         self.lexer = lexer
         self.errors: List[ParserError] = []
-        self.cur_token = Token(ILLEGAL, ILLEGAL)
-        self.peek_token = Token(ILLEGAL, ILLEGAL)
+        self.cur_token = MToken(ILLEGAL, ILLEGAL, '', 0, 0)
+        self.peek_token = MToken(ILLEGAL, ILLEGAL, '', 0, 0)
 
         self.next_token()
         self.next_token()
@@ -56,8 +55,7 @@ class Parser:
     def __str__(self):
         return f"Parser <{self.cur_token}>"
 
-    @flog
-    def prefix_parse_fn(self, token: Token):
+    def prefix_parse_fn(self, token: MToken):
         match token.type, token.literal:
             case "Identifier", _:
                 return self.parse_identifier
@@ -80,11 +78,9 @@ class Parser:
                 return self.parse_function_literal
 
             case _:
-                raise UnknownTokenException
+                raise UnknownTokenException(f"unknown token {self.cur_token}")
 
-    @flog
-    def infix_parse_fn(self, token: Token):
-        print(f"infix {token.type} {token.literal}")
+    def infix_parse_fn(self, token: MToken):
         match token.type, token.literal:
             case "+" | "-" | "/" | "*" | "==" | "!=" | "<" | ">", _:
                 return self.parse_infix_expression
@@ -95,15 +91,13 @@ class Parser:
             case _:
                 return None
 
-    @flog
     def next_token(self):
         self.cur_token = self.peek_token
         try:
             self.peek_token = next(self.lexer)
         except StopIteration:
-            self.peek_token = Token(EOF, EOF)
+            self.peek_token = MToken(EOF, EOF, '', 0, 0)
 
-    @flog
     def expect_peek(self, token_type) -> bool:
         if self.peek_token == token_type:
             self.next_token()
@@ -111,25 +105,22 @@ class Parser:
         return False
 
 
-    @flog
-    def parse_program(self) -> Program:
+    def parse_program(self) -> MProgram:
         statements = []
 
         while self.cur_token.type != EOF:
             statements.append(self.parse_statement())
             self.next_token()
 
-        return Program(statements)
+        return MProgram(statements)
 
-    @flog
-    def parse_identifier(self) -> Expression:
+    def parse_identifier(self) -> MExpression:
         token = self.cur_token
         value = token.literal
 
-        return Identifier(value, token)
+        return MIdentifier(value, token)
 
-    @flog
-    def parse_statement(self) -> Statement:
+    def parse_statement(self) -> MStatement:
         match self.cur_token.type, self.cur_token.literal:
             case "Keyword", "let":
                 return self.parse_let_statement()
@@ -138,65 +129,60 @@ class Parser:
             case _:
                 return self.parse_expression_statement()
 
-    @flog
-    def parse_let_statement(self) -> Statement:
+    def parse_let_statement(self) -> MStatement:
         if self.cur_token != LET:
-            raise UnknownTokenException
+            raise UnknownTokenException(f"expected let, got token {self.cur_token}")
         token = self.cur_token
 
         self.next_token()
 
-        name = Identifier(self.cur_token.literal, self.cur_token)
+        name = MIdentifier(self.cur_token.literal, self.cur_token)
 
         if not self.expect_peek(ASSIGN):
-            raise UnknownTokenException
+            raise UnknownTokenException(f"expected =, got token {self.cur_token}")
 
         self.next_token()
 
         value = self.parse_expression(Precedence.Lowest)
         if value is None:
-            raise UnknownTokenException
+            raise UnknownTokenException(f"let statement has no value, token {self.cur_token}")
 
         if self.peek_token.type == SEMICOLON:
             self.next_token()
 
-        return LetStatement(name, value, token)
+        return MLetStatement(name, value, token)
 
-    @flog
-    def parse_return_statement(self) -> Statement:
+    def parse_return_statement(self) -> MStatement:
         token = self.cur_token
         self.next_token()
 
         value = self.parse_expression(Precedence.Lowest)
         if value is None:
-            raise UnknownTokenException
+            raise UnknownTokenException(f"return statement has no value, token {self.cur_token}")
 
         if self.peek_token.type == SEMICOLON:
             self.next_token()
 
-        return ReturnStatement(value, token)
+        return MReturnStatement(value, token)
 
-    @flog
-    def parse_expression_statement(self) -> Statement:
+    def parse_expression_statement(self) -> MStatement:
         token = self.cur_token
 
         expression = self.parse_expression(Precedence.Lowest)
         if expression is None:
-            raise UnknownTokenException
+            raise UnknownTokenException(f"expr stmt has no value, token {self.cur_token}")
 
         if self.peek_token.type == SEMICOLON:
             self.next_token()
 
-        return ExpressionStatement(expression, token)
+        return MExpressionStatement(expression, token)
 
-    @flog
-    def parse_integer_literal(self) -> Expression:
+    def parse_integer_literal(self) -> MExpression:
         token = self.cur_token
         value = int(token.literal)
-        return IntegerExpression(value, token)
+        return MIntegerExpression(value, token)
 
-    @flog
-    def parse_prefix_expression(self) -> Expression:
+    def parse_prefix_expression(self) -> MExpression:
         token = self.cur_token
         operator = token.literal
 
@@ -204,49 +190,45 @@ class Parser:
 
         right = self.parse_expression(Precedence.Prefix)
         if right is None:
-            raise UnknownTokenException
+            raise UnknownTokenException(f"prefix expr has no value, token {self.cur_token}")
 
-        return PrefixExpression(operator, right, token)
+        return MPrefixExpression(operator, right, token)
 
-    @flog
-    def parse_boolean(self) -> Expression:
+    def parse_boolean(self) -> MExpression:
         token = self.cur_token
         value = self.cur_token.literal == "true"
 
-        return BooleanExpression(value, token)
+        return MBooleanExpression(value, token)
 
-    @flog
-    def parse_grouped_expression(self) -> Expression:
+    def parse_grouped_expression(self) -> MExpression:
         self.next_token()
 
         expression = self.parse_expression(Precedence.Lowest)
-        print(f"group {expression}")
         if expression is None:
-            raise UnknownTokenException
+            raise UnknownTokenException(f"grouped expr has no expr, token {self.cur_token}")
 
         if not self.expect_peek(RPAREN):
-            raise UnknownTokenException
+            raise UnknownTokenException(f"expected ), got token {self.cur_token}")
 
         return expression
 
-    @flog
-    def parse_if_expression(self) -> Expression:
+    def parse_if_expression(self) -> MExpression:
         token = self.cur_token
 
         if not self.expect_peek(LPAREN):
-            raise UnknownTokenException
+            raise UnknownTokenException(f"expected (, got token {self.cur_token}")
 
         self.next_token()
 
         condition = self.parse_expression(Precedence.Lowest)
         if condition is None:
-            raise UnknownTokenException
+            raise UnknownTokenException(f"if has no condition, token {self.cur_token}")
 
         if not self.expect_peek(RPAREN):
-            raise UnknownTokenException
+            raise UnknownTokenException(f"expexted ), got token {self.cur_token}")
 
         if not self.expect_peek(LBRACE):
-            raise UnknownTokenException
+            raise UnknownTokenException(f"expected {{, got token {self.cur_token}")
 
         consequence = self.parse_block_statement()
 
@@ -254,35 +236,33 @@ class Parser:
             self.next_token()
 
             if not self.expect_peek(LBRACE):
-                raise UnknownTokenException
+                raise UnknownTokenException(f"expected {{, got token {self.cur_token}")
 
             alternative = self.parse_block_statement()
 
         else:
             alternative = None
 
-        return IfExpression(condition, consequence, alternative, token)
+        return MIfExpression(condition, consequence, alternative, token)
 
-    @flog
-    def parse_function_literal(self) -> Expression:
+    def parse_function_literal(self) -> MExpression:
         token = self.cur_token
 
         
         if not self.expect_peek(LPAREN):
-            raise UnknownTokenException
+            raise UnknownTokenException(f"expected {{, got token {self.cur_token}")
 
         parameters = self.parse_function_parameters()
 
         if not self.expect_peek(LBRACE):
-            raise UnknownTokenException
+            raise UnknownTokenException(f"expected {{, got token {self.cur_token}")
 
         body = self.parse_block_statement()
 
-        return FunctionExpression(parameters, body, token)
+        return MFunctionExpression(parameters, body, token)
 
-    @flog
-    def parse_function_parameters(self) -> List[Expression]:
-        identifier: List[Expression] = []
+    def parse_function_parameters(self) -> List[MExpression]:
+        identifier: List[MExpression] = []
 
         if self.peek_token.type == RPAREN:
             self.next_token()
@@ -292,7 +272,7 @@ class Parser:
 
         token = self.cur_token
         value = token.literal
-        ident = Identifier(value, token)
+        ident = MIdentifier(value, token)
 
         identifier.append(ident)
 
@@ -302,43 +282,36 @@ class Parser:
 
             token = self.cur_token
             value = token.literal
-            ident = Identifier(value, token)
+            ident = MIdentifier(value, token)
 
             identifier.append(ident)
 
         if not self.expect_peek(RPAREN):
-            raise UnknownTokenException
+            raise UnknownTokenException(f"expected }}, got token {self.cur_token}")
 
         return identifier
 
-    @flog
-    def parse_infix_expression(self, left: Expression) -> Expression:
+    def parse_infix_expression(self, left: MExpression) -> MExpression:
         token = self.cur_token
         operator = token.literal
         precedence = Precedence.from_token(token)
 
         self.next_token()
 
-        print("parse expr")
         right = self.parse_expression(precedence)
         if right is None:
-            print("right is none")
-            print(left)
-            print(precedence)
-            raise UnknownTokenException
+            raise UnknownTokenException(f"infix right is none token {self.cur_token}")
 
-        return InfixExpression(operator, left, right, token)
+        return MInfixExpression(operator, left, right, token)
 
-    @flog
-    def parse_call_expression(self, function: Expression) -> Expression:
+    def parse_call_expression(self, function: MExpression) -> MExpression:
         token = self.cur_token
         arguments = self.parse_call_arguments()
 
-        return CallExpression(function, arguments, token)
+        return MCallExpression(function, arguments, token)
 
-    @flog
-    def parse_call_arguments(self) -> List[Expression]:
-        args: List[Expression] = []
+    def parse_call_arguments(self) -> List[MExpression]:
+        args: List[MExpression] = []
 
         if self.peek_token.type == RPAREN:
             self.next_token()
@@ -348,7 +321,7 @@ class Parser:
 
         arg = self.parse_expression(Precedence.Lowest)
         if arg is None:
-            raise UnknownTokenException
+            raise UnknownTokenException(f"call arg is none, token {self.cur_token}")
         args.append(arg)
 
         while self.peek_token.type == COMMA:
@@ -357,16 +330,15 @@ class Parser:
 
             arg = self.parse_expression(Precedence.Lowest)
             if arg is None:
-                raise UnknownTokenException
+                raise UnknownTokenException(f"call arg is none token {self.cur_token}")
             args.append(arg)
 
         if not self.expect_peek(RPAREN):
-            raise UnknownTokenException
+            raise UnknownTokenException(f"expected }}, got token {self.cur_token}")
 
         return args
 
-    @flog
-    def parse_block_statement(self) -> BlockStatement:
+    def parse_block_statement(self) -> MBlockStatement:
         token = self.cur_token
         statemtens = []
 
@@ -377,10 +349,9 @@ class Parser:
             statemtens.append(stmt)
             self.next_token()
 
-        return BlockStatement(statemtens, token)
+        return MBlockStatement(statemtens, token)
 
-    @flog
-    def parse_expression(self, precedence: Precedence) -> Expression | None:
+    def parse_expression(self, precedence: Precedence) -> MExpression | None:
         token = self.cur_token
 
         left = None
@@ -392,10 +363,8 @@ class Parser:
         peek_precedence = Precedence.from_token(self.peek_token)
 
         while self.peek_token.type != SEMICOLON and precedence.value < peek_precedence.value:
-            print("while")
             infix = self.infix_parse_fn(self.peek_token)
             if infix is None:
-                print(f"infix is None return {left}")
                 return left
             self.next_token()
             left = infix(left)

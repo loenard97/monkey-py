@@ -47,22 +47,26 @@ keywords = {
 
 
 @dataclass
-class Token:
+class MToken:
 
     type: TokenType
     literal: str
+    file: str
+    line: int
+    pos: int
 
-    def __init__(self, type, literal):
+    def __init__(self, type, literal, file='', line=0, pos=0):
         self.type = type
         self.literal = literal
-
+        self.file = file
+        self.line = line
+        self.pos = pos
 
     def __str__(self):
-        return f"{self.type}.{self.literal}"
-
+        return f"Token <{self.type}, {self.literal}, {self.file}, {self.line}, {self.pos}>"
 
     def __eq__(self, __value: object) -> bool:
-        if isinstance(__value, Token):
+        if isinstance(__value, MToken):
             print("eq")
             print(f"{self.type=} {__value.type=} {self.literal=} {__value.type=}")
             return self.type == __value.type and self.literal == __value.literal

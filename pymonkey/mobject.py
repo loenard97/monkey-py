@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List, Union
 
-from pymonkey.ast import BlockStatement, Expression, Identifier
+from pymonkey.mast import MBlockStatement, MExpression
 
 
 ObjectType = str
@@ -17,7 +17,7 @@ RETURN_VALUE_OBJ = "RETURN_VALUE"
 FUNCTION_OBJ = "FUNCTION"
 
 
-class IObject(ABC):
+class MObject(ABC):
 
     type: ObjectType
 
@@ -26,13 +26,13 @@ class IObject(ABC):
         return NotImplementedError
 
 
-class ValuedObject(IObject, ABC):
+class MValuedObject(MObject, ABC):
 
     value: int | bool
 
 
 @dataclass
-class NullObject(IObject):
+class MNullObject(MObject):
 
     @classmethod
     def __str__(cls):
@@ -40,7 +40,7 @@ class NullObject(IObject):
 
 
 @dataclass
-class IntegerObject(ValuedObject):
+class MIntegerObject(MValuedObject):
 
     value: int
     type = INTEGER_OBJ
@@ -50,7 +50,7 @@ class IntegerObject(ValuedObject):
 
 
 @dataclass
-class BooleanObject(ValuedObject):
+class MBooleanObject(MValuedObject):
 
     value: bool
     type = BOOLEAN_OBJ
@@ -60,9 +60,9 @@ class BooleanObject(ValuedObject):
 
 
 @dataclass
-class ReturnValueObject(IObject):
+class MReturnValueObject(MObject):
 
-    value: IObject
+    value: MObject
     type = RETURN_VALUE_OBJ
 
     def __str__(self):
@@ -70,7 +70,7 @@ class ReturnValueObject(IObject):
 
 
 @dataclass
-class ErrorObject(IObject):
+class MErrorObject(MObject):
 
     message: str
     type = ERROR_OBJ
@@ -80,11 +80,11 @@ class ErrorObject(IObject):
 
 
 @dataclass
-class FunctionObject(IObject):
+class MFunctionObject(MObject):
 
-    parameters: List[Expression]
-    body: BlockStatement
-    env: "Environment"
+    parameters: List[MExpression]
+    body: MBlockStatement
+    env: "MEnvironment"
     type = FUNCTION_OBJ
 
     def __str__(self):
@@ -92,10 +92,10 @@ class FunctionObject(IObject):
         return f"fn ({params}) {{ {self.body} }}"
 
 @dataclass
-class Environment:
+class MEnvironment:
 
     store: dict
-    outer: Union["Environment", None]
+    outer: Union["MEnvironment", None]
 
     def __init__(self):
         self.store = {}
@@ -105,15 +105,15 @@ class Environment:
         return f"Environment <{self.store}>"
 
     @classmethod
-    def new_enclosed(cls, outer: "Environment") -> "Environment":
+    def new_enclosed(cls, outer: "MEnvironment") -> "MEnvironment":
         ret = cls()
         ret.outer = outer
         return ret
 
-    def set(self, name: str, val: IObject):
+    def set(self, name: str, val: MObject):
         self.store[name] = val
         return val
 
-    def get(self, name: str) -> IObject:
+    def get(self, name: str) -> MObject:
         return self.store[name]
 

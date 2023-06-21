@@ -95,11 +95,11 @@ def test_if():
 
 def test_return():
     tests = {
-        "return 10;": 10,
-        "return 10; 9;": 10,
-        "return 2 * 5; 9;": 10,
-        "9; return 2 * 5; 9;": 10,
-        "if (10 > 1) { return 10; };": 10,
+        "return 10;": IntegerObject(10),
+        "return 10; 9;": IntegerObject(10),
+        "return 2 * 5; 9;": IntegerObject(10),
+        "9; return 2 * 5; 9;": IntegerObject(10),
+        "if (10 > 1) { return 10; };": IntegerObject(10),
     }
 
     evaluate_test(tests)
