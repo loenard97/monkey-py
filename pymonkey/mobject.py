@@ -4,7 +4,6 @@ from typing import List, Union
 
 from pymonkey.mast import MBlockStatement, MExpression
 
-
 ObjectType = str
 
 NULL_OBJ = "NULL"
@@ -18,7 +17,6 @@ FUNCTION_OBJ = "FUNCTION"
 
 
 class MObject(ABC):
-
     type: ObjectType
 
     @abstractmethod
@@ -27,21 +25,18 @@ class MObject(ABC):
 
 
 class MValuedObject(MObject, ABC):
-
     value: int | bool
 
 
 @dataclass
 class MNullObject(MObject):
-
     @classmethod
     def __str__(cls):
-        return f"None"
+        return "None"
 
 
 @dataclass
 class MIntegerObject(MValuedObject):
-
     value: int
     type = INTEGER_OBJ
 
@@ -51,7 +46,6 @@ class MIntegerObject(MValuedObject):
 
 @dataclass
 class MBooleanObject(MValuedObject):
-
     value: bool
     type = BOOLEAN_OBJ
 
@@ -61,7 +55,6 @@ class MBooleanObject(MValuedObject):
 
 @dataclass
 class MReturnValueObject(MObject):
-
     value: MObject
     type = RETURN_VALUE_OBJ
 
@@ -71,7 +64,6 @@ class MReturnValueObject(MObject):
 
 @dataclass
 class MErrorObject(MObject):
-
     message: str
     type = ERROR_OBJ
 
@@ -81,19 +73,18 @@ class MErrorObject(MObject):
 
 @dataclass
 class MFunctionObject(MObject):
-
     parameters: List[MExpression]
     body: MBlockStatement
     env: "MEnvironment"
     type = FUNCTION_OBJ
 
     def __str__(self):
-        params = ', '.join([str(p) for p in self.parameters])
+        params = ", ".join([str(p) for p in self.parameters])
         return f"fn ({params}) {{ {self.body} }}"
+
 
 @dataclass
 class MEnvironment:
-
     store: dict
     outer: Union["MEnvironment", None]
 
@@ -116,4 +107,3 @@ class MEnvironment:
 
     def get(self, name: str) -> MObject:
         return self.store[name]
-

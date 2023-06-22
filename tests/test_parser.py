@@ -1,5 +1,6 @@
 from typing import List
-from pymonkey.parser import Lexer, Parser
+
+from pymonkey.mparser import MLexer, Parser
 
 
 def test_let():
@@ -87,7 +88,7 @@ def test_if():
         "if (true) { return 1; };",
         "if (false) { return 1; } else { return 0; };",
     ]
-    
+
     run_parser(input)
 
 
@@ -102,9 +103,8 @@ def test_function():
 
 def run_parser(test: List[str]):
     for i, t in enumerate(test):
-        lexer = Lexer(t)
+        lexer = MLexer(t)
         parser = Parser(lexer)
         program = parser.parse_program()
 
         assert str(program) == t, f"Test {i} failed: {t}"
-

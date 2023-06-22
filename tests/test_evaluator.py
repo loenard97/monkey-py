@@ -1,40 +1,47 @@
-from pymonkey.object import BooleanObject, Environment, IntegerObject, NullObject
-from pymonkey.parser import Lexer, Parser
-from pymonkey.evaluator import eval
+from pymonkey.mevaluator import eval
+from pymonkey.mobject import (
+    MBooleanObject,
+    MEnvironment,
+    MIntegerObject,
+    MNullObject,
+)
+from pymonkey.mparser import MLexer, Parser
 
 
 def evaluate_test(test_dict: dict):
     for i, (in_test, out_test) in enumerate(test_dict.items()):
         try:
-            lexer = Lexer(in_test)
+            lexer = MLexer(in_test)
             parser = Parser(lexer)
             program = parser.parse_program()
-            env = Environment()
-        
+            env = MEnvironment()
+
             eval(program, env)
         except Exception as err:
             assert False, f"Test {i} failed: Error: {err}"
         else:
-            assert eval(program, env) == out_test, f"Test {i} failed: {in_test} {out_test}"
+            assert (
+                eval(program, env) == out_test
+            ), f"Test {i} failed: {in_test} {out_test}"
 
 
 def test_int():
     tests = {
-        "5;": IntegerObject(5),
-        "10;": IntegerObject(10),
-        "-5;": IntegerObject(-5),
-        "-10;": IntegerObject(-10),
-        "5 + 5 + 5 + 5 - 10;": IntegerObject(10),
-        "2 * 2 * 2 * 2 * 2;": IntegerObject(32),
-        "-50 + 100 + -50;": IntegerObject(0),
-        "5 * 2 + 10;": IntegerObject(20),
-        "5 + 2 * 10;": IntegerObject(25),
-        "20 + 2 * -10;": IntegerObject(0),
-        "50 / 2 * 2 + 10;": IntegerObject(60),
-        "2 * (5 + 10);": IntegerObject(30),
-        "3 * 3 * 3 + 10;": IntegerObject(37),
-        "3 * (3 * 3) + 10;": IntegerObject(37),
-        "(5 + 10 * 2 + 15 / 3) * 2 + -10;": IntegerObject(50),
+        "5;": MIntegerObject(5),
+        "10;": MIntegerObject(10),
+        "-5;": MIntegerObject(-5),
+        "-10;": MIntegerObject(-10),
+        "5 + 5 + 5 + 5 - 10;": MIntegerObject(10),
+        "2 * 2 * 2 * 2 * 2;": MIntegerObject(32),
+        "-50 + 100 + -50;": MIntegerObject(0),
+        "5 * 2 + 10;": MIntegerObject(20),
+        "5 + 2 * 10;": MIntegerObject(25),
+        "20 + 2 * -10;": MIntegerObject(0),
+        "50 / 2 * 2 + 10;": MIntegerObject(60),
+        "2 * (5 + 10);": MIntegerObject(30),
+        "3 * 3 * 3 + 10;": MIntegerObject(37),
+        "3 * (3 * 3) + 10;": MIntegerObject(37),
+        "(5 + 10 * 2 + 15 / 3) * 2 + -10;": MIntegerObject(50),
     }
 
     evaluate_test(tests)
@@ -42,25 +49,25 @@ def test_int():
 
 def test_bool():
     tests = {
-        "true;": BooleanObject(True),
-        "false;": BooleanObject(False),
-        "1 < 2;": BooleanObject(True),
-        "1 > 2;": BooleanObject(False),
-        "1 < 1;": BooleanObject(False),
-        "1 > 1;": BooleanObject(False),
-        "1 == 1;": BooleanObject(True),
-        "1 != 1;": BooleanObject(False),
-        "1 == 2;": BooleanObject(False),
-        "1 != 2;": BooleanObject(True),
-        "true == true;": BooleanObject(True),
-        "false == false;": BooleanObject(True),
-        "true == false;": BooleanObject(False),
-        "true != false;": BooleanObject(True),
-        "false != true;": BooleanObject(True),
-        "(1 < 2) == true;": BooleanObject(True),
-        "(1 < 2) == false;": BooleanObject(False),
-        "(1 > 2) == true;": BooleanObject(False),
-        "(1 > 2) == false;": BooleanObject(True),
+        "true;": MBooleanObject(True),
+        "false;": MBooleanObject(False),
+        "1 < 2;": MBooleanObject(True),
+        "1 > 2;": MBooleanObject(False),
+        "1 < 1;": MBooleanObject(False),
+        "1 > 1;": MBooleanObject(False),
+        "1 == 1;": MBooleanObject(True),
+        "1 != 1;": MBooleanObject(False),
+        "1 == 2;": MBooleanObject(False),
+        "1 != 2;": MBooleanObject(True),
+        "true == true;": MBooleanObject(True),
+        "false == false;": MBooleanObject(True),
+        "true == false;": MBooleanObject(False),
+        "true != false;": MBooleanObject(True),
+        "false != true;": MBooleanObject(True),
+        "(1 < 2) == true;": MBooleanObject(True),
+        "(1 < 2) == false;": MBooleanObject(False),
+        "(1 > 2) == true;": MBooleanObject(False),
+        "(1 > 2) == false;": MBooleanObject(True),
     }
 
     evaluate_test(tests)
@@ -68,12 +75,12 @@ def test_bool():
 
 def test_bang():
     tests = {
-        "!true;": BooleanObject(False),
-        "!false;": BooleanObject(True),
-        "!5;": BooleanObject(False),
-        "!!true;": BooleanObject(True),
-        "!!false;": BooleanObject(False),
-        "!!5;": BooleanObject(True),
+        "!true;": MBooleanObject(False),
+        "!false;": MBooleanObject(True),
+        "!5;": MBooleanObject(False),
+        "!!true;": MBooleanObject(True),
+        "!!false;": MBooleanObject(False),
+        "!!5;": MBooleanObject(True),
     }
 
     evaluate_test(tests)
@@ -81,13 +88,13 @@ def test_bang():
 
 def test_if():
     tests = {
-        "if (true) { 10 };": IntegerObject(10),
-        "if (false) { 10 };": NullObject(),
-        "if (1) { 10 };": IntegerObject(10),
-        "if (1 < 2) { 10 };": IntegerObject(10),
-        "if (1 > 2) { 10 };": NullObject(),
-        "if (1 > 2) { 10 } else { 20 };": IntegerObject(20),
-        "if (1 < 2) { 10 } else { 20 };": IntegerObject(10),
+        "if (true) { 10 };": MIntegerObject(10),
+        "if (false) { 10 };": MNullObject(),
+        "if (1) { 10 };": MIntegerObject(10),
+        "if (1 < 2) { 10 };": MIntegerObject(10),
+        "if (1 > 2) { 10 };": MNullObject(),
+        "if (1 > 2) { 10 } else { 20 };": MIntegerObject(20),
+        "if (1 < 2) { 10 } else { 20 };": MIntegerObject(10),
     }
 
     evaluate_test(tests)
@@ -95,12 +102,57 @@ def test_if():
 
 def test_return():
     tests = {
-        "return 10;": IntegerObject(10),
-        "return 10; 9;": IntegerObject(10),
-        "return 2 * 5; 9;": IntegerObject(10),
-        "9; return 2 * 5; 9;": IntegerObject(10),
-        "if (10 > 1) { return 10; };": IntegerObject(10),
+        "return 10;": MIntegerObject(10),
+        "return 10; 9;": MIntegerObject(10),
+        "return 2 * 5; 9;": MIntegerObject(10),
+        "9; return 2 * 5; 9;": MIntegerObject(10),
+        "if (10 > 1) { return 10; };": MIntegerObject(10),
     }
 
     evaluate_test(tests)
 
+
+def test_let():
+    tests = {
+        "let a = 5; a;": MIntegerObject(5),
+        "let a = 5 * 5; a;": MIntegerObject(25),
+        "let a = 5; let b = a; b;": MIntegerObject(5),
+        "let a = 5; let b = a; let c = a + b + 5; c;": MIntegerObject(15),
+    }
+
+    evaluate_test(tests)
+
+
+def test_fn():
+    tests = {
+        "let identity = fn(x) { x; }; identity(5);": MIntegerObject(5),
+        "let identity = fn(x) { return x; }; identity(5);": MIntegerObject(5),
+        "let double = fn(x) { x * 2; }; double(5);": MIntegerObject(10),
+        "let add = fn(x, y) { x + y; }; add(5, 5);": MIntegerObject(10),
+        "let add = fn(x, y) { x + y; }; add(5 + 5, add(5, 5));": (
+            MIntegerObject(20)
+        ),
+        "fn(x) { x; }(5)": MIntegerObject(5),
+    }
+
+    evaluate_test(tests)
+
+
+def test_env():
+    # fmt: off
+    tests = {"\
+        let first = 10;\
+        let second = 10;\
+        let third = 10;\
+        \
+        let ourFunction = fn(first) {\
+            let second = 20;\
+            first + second + third;\
+        };\
+        \
+        ourFunction(20) + first + second;":
+             MIntegerObject(70),
+    }   # NOQA: E124
+    # fmt: on
+
+    evaluate_test(tests)

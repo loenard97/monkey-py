@@ -21,6 +21,13 @@ activate:
 test:
 	pytest
 
+fmt:
+	isort pymonkey/ tests/ *.py --multi-line 3 --profile black
+	black pymonkey/ tests/ *.py
+	flake8 --config .flake8
+	mypy pymonkey/ tests/ *.py
+	
+
 lint:
 	flake8
 	mypy pymonkey tests

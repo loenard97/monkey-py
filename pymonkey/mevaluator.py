@@ -1,7 +1,33 @@
 from typing import List
 
-from pymonkey.mast import MBlockStatement, MBooleanExpression, MCallExpression, MExpression, MExpressionStatement, MFunctionExpression, MIdentifier, MIfExpression, MInfixExpression, MIntegerExpression, MLetStatement, MNode, MPrefixExpression, MProgram, MReturnStatement
-from pymonkey.mobject import MObject, MErrorObject, MIntegerObject, MBooleanObject, MEnvironment, MReturnValueObject, MNullObject, MFunctionObject, MValuedObject
+from pymonkey.mast import (
+    MBlockStatement,
+    MBooleanExpression,
+    MCallExpression,
+    MExpression,
+    MExpressionStatement,
+    MFunctionExpression,
+    MIdentifier,
+    MIfExpression,
+    MInfixExpression,
+    MIntegerExpression,
+    MLetStatement,
+    MNode,
+    MPrefixExpression,
+    MProgram,
+    MReturnStatement,
+)
+from pymonkey.mobject import (
+    MBooleanObject,
+    MEnvironment,
+    MErrorObject,
+    MFunctionObject,
+    MIntegerObject,
+    MNullObject,
+    MObject,
+    MReturnValueObject,
+    MValuedObject,
+)
 
 
 def eval(node: MNode, env: MEnvironment) -> MObject:
@@ -16,9 +42,7 @@ def eval(node: MNode, env: MEnvironment) -> MObject:
         return eval(node.expression, env)
 
     elif isinstance(node, MReturnStatement):
-        print("eval return")
         val = eval(node.value, env)
-        print(f"{val=}")
         if isinstance(val, MErrorObject):
             return val
         return MReturnValueObject(val)
@@ -70,7 +94,7 @@ def eval(node: MNode, env: MEnvironment) -> MObject:
         args = eval_expressions(node.arguments, env)
         if len(args) == 1 and isinstance(args[0], MErrorObject):
             return args[0]
-        
+
         if isinstance(function, MFunctionObject):
             return apply_function(function, args)
 
@@ -80,7 +104,7 @@ def eval(node: MNode, env: MEnvironment) -> MObject:
 
 
 def eval_program(program: MProgram, env: MEnvironment) -> MObject:
-    result = MNullObject()
+    result: MObject = MNullObject()
 
     for stmt in program.statements:
         result = eval(stmt, env)
@@ -91,16 +115,19 @@ def eval_program(program: MProgram, env: MEnvironment) -> MObject:
         if isinstance(result, MErrorObject):
             return result
 
+    print(result)
     return result
 
 
 def eval_block_statement(block: MBlockStatement, env: MEnvironment) -> MObject:
-    result = MNullObject()
+    result: MObject = MNullObject()
 
     for stmt in block.statements:
         result = eval(stmt, env)
 
-        if isinstance(result, MReturnValueObject) or isinstance(result, MErrorObject):
+        if isinstance(result, MReturnValueObject) or isinstance(
+            result, MErrorObject
+        ):
             return result
 
     return result
@@ -116,7 +143,7 @@ def eval_prefix_expression(operator: str, right: MObject) -> MObject:
     match operator:
         case "!":
             return eval_bang_operator_expression(right)
-        
+
         case "-":
             return eval_minus_operator_expression(right)
 
@@ -124,7 +151,9 @@ def eval_prefix_expression(operator: str, right: MObject) -> MObject:
             return MErrorObject("unknown operator")
 
 
-def eval_infix_expression(operator: str, left: MObject, right: MObject) -> MObject:
+def eval_infix_expression(
+    operator: str, left: MObject, right: MObject
+) -> MObject:
     if isinstance(left, MIntegerObject) and isinstance(right, MIntegerObject):
         return eval_integer_infix_expression(operator, left, right)
 
@@ -135,9 +164,13 @@ def eval_infix_expression(operator: str, left: MObject, right: MObject) -> MObje
         return MBooleanObject(left != right)
 
     if type(left) != type(right):
-        return MErrorObject(f"type mismatch in {type(left)} {operator} {type(right)}")
+        return MErrorObject(
+            f"type mismatch in {type(left)} {operator} {type(right)}"
+        )
 
-    return MErrorObject("unknown operator {type(left)} {operator} {type(right)}")
+    return MErrorObject(
+        "unknown operator {type(left)} {operator} {type(right)}"
+    )
 
 
 def eval_bang_operator_expression(right: MObject) -> MObject:
@@ -152,7 +185,9 @@ def eval_minus_operator_expression(right: MObject) -> MObject:
     return MErrorObject("unknown operator")
 
 
-def eval_integer_infix_expression(operator: str, left: MObject, right: MObject) -> MObject:
+def eval_integer_infix_expression(
+    operator: str, left: MObject, right: MObject
+) -> MObject:
     if isinstance(left, MValuedObject) and isinstance(right, MValuedObject):
         if operator == "+":
             return MIntegerObject(left.value + right.value)
@@ -215,9 +250,11 @@ def is_truthy(obj: MObject) -> bool:
     return True
 
 
-def eval_expressions(exps: List[MExpression], env: MEnvironment) -> List[MObject]:
+def eval_expressions(
+    exps: List[MExpression], env: MEnvironment
+) -> List[MObject]:
     result = []
-    
+
     for e in exps:
         evaluated = eval(e, env)
         if isinstance(evaluated, MErrorObject):
@@ -229,9 +266,6 @@ def eval_expressions(exps: List[MExpression], env: MEnvironment) -> List[MObject
 
 
 def apply_function(fn: MFunctionObject, args: List[MObject]) -> MObject:
-    if fn is None:
-        return MErrorObject("not a function")
-
     extended_env = extend_function_env(fn, args)
     evaluated = eval(fn.body, extended_env)
 
@@ -240,11 +274,12 @@ def apply_function(fn: MFunctionObject, args: List[MObject]) -> MObject:
     return evaluated
 
 
-def extend_function_env(fn: MFunctionObject, args: List[MObject]) -> MEnvironment:
+def extend_function_env(
+    fn: MFunctionObject, args: List[MObject]
+) -> MEnvironment:
     env = MEnvironment.new_enclosed(fn.env)
 
     for i, param in enumerate(fn.parameters):
-        env.set(param.value, args[i])
+        env.set(param.token.literal, args[i])
 
     return env
-

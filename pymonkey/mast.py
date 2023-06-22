@@ -1,13 +1,12 @@
-from typing import List
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import List
 
-from pymonkey.mtoken import MToken, ILLEGAL
+from pymonkey.mtoken import ILLEGAL, MToken
 
 
 class MNode(ABC):
-
-    token: MToken = NotImplemented 
+    token: MToken = NotImplemented
 
     @abstractmethod
     def __str__(self):
@@ -15,28 +14,24 @@ class MNode(ABC):
 
 
 class MStatement(MNode):
-
     pass
 
 
 class MExpression(MNode):
-
     pass
 
 
 @dataclass
 class MProgram(MNode):
-    
     statements: List[MStatement]
-    token = MToken(ILLEGAL, ILLEGAL, '', 0, 0)
+    token = MToken(ILLEGAL, ILLEGAL, "", 0, 0)
 
     def __str__(self):
-        return '\n'.join(str(s) for s in self.statements)
+        return "\n".join(str(s) for s in self.statements)
 
 
 @dataclass
 class MIdentifier(MExpression):
-
     value: str
     token: MToken
 
@@ -46,18 +41,16 @@ class MIdentifier(MExpression):
 
 @dataclass
 class MLetStatement(MStatement):
-    
     name: MIdentifier
     value: MExpression
     token: MToken
-    
+
     def __str__(self):
         return f"let {self.name} = {self.value};"
 
 
 @dataclass
 class MReturnStatement(MStatement):
-
     value: MExpression
     token: MToken
 
@@ -67,7 +60,6 @@ class MReturnStatement(MStatement):
 
 @dataclass
 class MExpressionStatement(MStatement):
-
     expression: MExpression
     token: MToken
 
@@ -77,17 +69,15 @@ class MExpressionStatement(MStatement):
 
 @dataclass
 class MBlockStatement(MStatement):
-
     statements: List[MStatement]
     token: MToken
 
     def __str__(self):
-        return '\n'.join(str(s) for s in self.statements)
+        return "\n".join(str(s) for s in self.statements)
 
 
 @dataclass
 class MBooleanExpression(MExpression):
-
     value: bool
     token: MToken
 
@@ -97,7 +87,6 @@ class MBooleanExpression(MExpression):
 
 @dataclass
 class MIntegerExpression(MExpression):
-
     value: int
     token: MToken
 
@@ -107,7 +96,6 @@ class MIntegerExpression(MExpression):
 
 @dataclass
 class MPrefixExpression(MExpression):
-
     operator: str
     right: MExpression
     token: MToken
@@ -118,7 +106,6 @@ class MPrefixExpression(MExpression):
 
 @dataclass
 class MInfixExpression(MExpression):
-
     operator: str
     left: MExpression
     right: MExpression
@@ -130,7 +117,6 @@ class MInfixExpression(MExpression):
 
 @dataclass
 class MIfExpression(MExpression):
-
     condition: MExpression
     consequence: MBlockStatement
     alternative: MBlockStatement | None
@@ -139,29 +125,29 @@ class MIfExpression(MExpression):
     def __str__(self):
         if self.alternative is None:
             return f"if ({self.condition}) {{ {self.consequence} }}"
-        return f"if ({self.condition}) {{ {self.consequence} }} else {{ {self.alternative} }}"
+        return (
+            f"if ({self.condition}) {{ {self.consequence} }} else {{"
+            f" {self.alternative} }}"
+        )
 
 
 @dataclass
 class MFunctionExpression(MExpression):
-
     parameters: List[MExpression]
     body: MBlockStatement
     token: MToken
 
     def __str__(self):
-        params = ', '.join([str(p) for p in self.parameters])
+        params = ", ".join([str(p) for p in self.parameters])
         return f"{self.token.literal}({params}) {{ {self.body} }}"
 
 
 @dataclass
 class MCallExpression(MExpression):
-
     function: MExpression
     arguments: List[MExpression]
     token: MToken
 
     def __str__(self):
-        args = ', '.join([str(a) for a in self.arguments])
+        args = ", ".join([str(a) for a in self.arguments])
         return f"{self.function}({args})"
-

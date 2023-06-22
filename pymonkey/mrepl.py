@@ -1,9 +1,9 @@
 import sys
 
+from pymonkey.mevaluator import eval
 from pymonkey.mlexer import MLexer
 from pymonkey.mobject import MEnvironment
 from pymonkey.mparser import Parser
-from pymonkey.mevaluator import eval
 
 
 def repl():
@@ -22,7 +22,5 @@ def repl():
         print(f"-> {evaluation}")
 
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     repl()
-

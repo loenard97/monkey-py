@@ -1,13 +1,13 @@
 import sys
 
+from pymonkey.mevaluator import eval
 from pymonkey.mlexer import MLexer
 from pymonkey.mobject import MEnvironment
 from pymonkey.mparser import Parser
-from pymonkey.mevaluator import eval
 
 
 def main():
-    with open(sys.argv[1], 'r') as file:
+    with open(sys.argv[1], "r") as file:
         inp = file.read()
 
     lexer = MLexer(inp)
@@ -21,6 +21,5 @@ def main():
     print(evaluated)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
-
