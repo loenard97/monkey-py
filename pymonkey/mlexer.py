@@ -44,9 +44,7 @@ class MLexer:
                 self.cur_line += 1
             self._read_ch()
 
-        token = MToken(
-            ILLEGAL, ILLEGAL, self.cur_file, self.cur_line, self.cur_pos
-        )
+        token = MToken(ILLEGAL, ILLEGAL, self.cur_file, self.cur_line, self.cur_pos)
         match self._ch:
             case "=":
                 if self._next_ch() == "=":
@@ -67,13 +65,9 @@ class MLexer:
                         self.cur_pos,
                     )
             case "+":
-                token = MToken(
-                    PLUS, PLUS, self.cur_file, self.cur_line, self.cur_pos
-                )
+                token = MToken(PLUS, PLUS, self.cur_file, self.cur_line, self.cur_pos)
             case "-":
-                token = MToken(
-                    MINUS, MINUS, self.cur_file, self.cur_line, self.cur_pos
-                )
+                token = MToken(MINUS, MINUS, self.cur_file, self.cur_line, self.cur_pos)
             case "!":
                 if self._next_ch() == "=":
                     self._read_ch()
@@ -97,9 +91,7 @@ class MLexer:
                     self.cur_pos,
                 )
             case "/":
-                token = MToken(
-                    SLASH, SLASH, self.cur_file, self.cur_line, self.cur_pos
-                )
+                token = MToken(SLASH, SLASH, self.cur_file, self.cur_line, self.cur_pos)
             case "<":
                 token = MToken(
                     LESSER, LESSER, self.cur_file, self.cur_line, self.cur_pos
@@ -114,9 +106,7 @@ class MLexer:
                 )
 
             case ",":
-                token = MToken(
-                    COMMA, COMMA, self.cur_file, self.cur_line, self.cur_pos
-                )
+                token = MToken(COMMA, COMMA, self.cur_file, self.cur_line, self.cur_pos)
             case ";":
                 token = MToken(
                     SEMICOLON,

@@ -1,28 +1,18 @@
-from pymonkey.mevaluator import eval
-from pymonkey.mobject import (
-    MBooleanObject,
-    MEnvironment,
-    MIntegerObject,
-    MNullObject,
-)
-from pymonkey.mparser import MLexer, Parser
+from pymonkey.mevaluator import MEvaluator
+from pymonkey.mobject import MBooleanObject, MIntegerObject, MNullObject
+from pymonkey.mparser import MLexer, MParser
 
 
 def evaluate_test(test_dict: dict):
     for i, (in_test, out_test) in enumerate(test_dict.items()):
         try:
             lexer = MLexer(in_test)
-            parser = Parser(lexer)
-            program = parser.parse_program()
-            env = MEnvironment()
-
-            eval(program, env)
+            program = MParser(lexer).parse_program()
+            evaluation = MEvaluator(program).evaluate()
         except Exception as err:
             assert False, f"Test {i} failed: Error: {err}"
         else:
-            assert (
-                eval(program, env) == out_test
-            ), f"Test {i} failed: {in_test} {out_test}"
+            assert evaluation == out_test, f"Test {i} failed: {in_test} {out_test}"
 
 
 def test_int():
@@ -129,9 +119,7 @@ def test_fn():
         "let identity = fn(x) { return x; }; identity(5);": MIntegerObject(5),
         "let double = fn(x) { x * 2; }; double(5);": MIntegerObject(10),
         "let add = fn(x, y) { x + y; }; add(5, 5);": MIntegerObject(10),
-        "let add = fn(x, y) { x + y; }; add(5 + 5, add(5, 5));": (
-            MIntegerObject(20)
-        ),
+        "let add = fn(x, y) { x + y; }; add(5 + 5, add(5, 5));": (MIntegerObject(20)),
         "fn(x) { x; }(5)": MIntegerObject(5),
     }
 

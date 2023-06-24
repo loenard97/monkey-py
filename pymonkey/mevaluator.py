@@ -30,256 +30,263 @@ from pymonkey.mobject import (
 )
 
 
-def eval(node: MNode, env: MEnvironment) -> MObject:
-    if isinstance(node, MProgram):
-        return eval_program(node, env)
+class MEvaluator:
+    def __init__(self, top_node: MNode):
+        self.top_node = top_node
+        self.top_env = MEnvironment()
 
-    # Statement
-    elif isinstance(node, MBlockStatement):
-        return eval_block_statement(node, env)
+    def evaluate(self):
+        return MEvaluator.eval_node(self.top_node, self.top_env)
 
-    elif isinstance(node, MExpressionStatement):
-        return eval(node.expression, env)
+    @classmethod
+    def eval_node(cls, node: MNode, env: MEnvironment) -> MObject:
+        if isinstance(node, MProgram):
+            return MEvaluator.eval_program(node, env)
 
-    elif isinstance(node, MReturnStatement):
-        val = eval(node.value, env)
-        if isinstance(val, MErrorObject):
-            return val
-        return MReturnValueObject(val)
+        # Statement
+        elif isinstance(node, MBlockStatement):
+            return MEvaluator.eval_block_statement(node, env)
 
-    elif isinstance(node, MLetStatement):
-        val = eval(node.value, env)
-        if isinstance(val, MErrorObject):
-            return val
-        env.set(node.name.value, val)
+        elif isinstance(node, MExpressionStatement):
+            return MEvaluator.eval_node(node.expression, env)
 
-    # Expression
-    elif isinstance(node, MIntegerExpression):
-        return MIntegerObject(node.value)
+        elif isinstance(node, MReturnStatement):
+            val = MEvaluator.eval_node(node.value, env)
+            if isinstance(val, MErrorObject):
+                return val
+            return MReturnValueObject(val)
 
-    elif isinstance(node, MBooleanExpression):
-        return MBooleanObject(node.value)
+        elif isinstance(node, MLetStatement):
+            val = MEvaluator.eval_node(node.value, env)
+            if isinstance(val, MErrorObject):
+                return val
+            env.set(node.name.value, val)
 
-    elif isinstance(node, MPrefixExpression):
-        right = eval(node.right, env)
-        if isinstance(right, MErrorObject):
-            return right
-        return eval_prefix_expression(node.operator, right)
+        # Expression
+        elif isinstance(node, MIntegerExpression):
+            return MIntegerObject(node.value)
 
-    elif isinstance(node, MInfixExpression):
-        left = eval(node.left, env)
-        if isinstance(left, MErrorObject):
-            return left
+        elif isinstance(node, MBooleanExpression):
+            return MBooleanObject(node.value)
 
-        right = eval(node.right, env)
-        if isinstance(right, MErrorObject):
-            return right
+        elif isinstance(node, MPrefixExpression):
+            right = MEvaluator.eval_node(node.right, env)
+            if isinstance(right, MErrorObject):
+                return right
+            return MEvaluator.eval_prefix_expression(node.operator, right)
 
-        return eval_infix_expression(node.operator, left, right)
+        elif isinstance(node, MInfixExpression):
+            left = MEvaluator.eval_node(node.left, env)
+            if isinstance(left, MErrorObject):
+                return left
 
-    elif isinstance(node, MIfExpression):
-        return eval_if_expression(node, env)
+            right = MEvaluator.eval_node(node.right, env)
+            if isinstance(right, MErrorObject):
+                return right
 
-    elif isinstance(node, MIdentifier):
-        return eval_identifier(node, env)
+            return MEvaluator.eval_infix_expression(node.operator, left, right)
 
-    elif isinstance(node, MFunctionExpression):
-        return MFunctionObject(node.parameters, node.body, env)
+        elif isinstance(node, MIfExpression):
+            return MEvaluator.eval_if_expression(node, env)
 
-    elif isinstance(node, MCallExpression):
-        function = eval(node.function, env)
-        if isinstance(function, MErrorObject):
-            return function
+        elif isinstance(node, MIdentifier):
+            return MEvaluator.eval_identifier(node, env)
 
-        args = eval_expressions(node.arguments, env)
-        if len(args) == 1 and isinstance(args[0], MErrorObject):
-            return args[0]
+        elif isinstance(node, MFunctionExpression):
+            return MFunctionObject(node.parameters, node.body, env)
 
-        if isinstance(function, MFunctionObject):
-            return apply_function(function, args)
+        elif isinstance(node, MCallExpression):
+            function = MEvaluator.eval_node(node.function, env)
+            if isinstance(function, MErrorObject):
+                return function
 
-        return MErrorObject("not a function")
+            args = MEvaluator.eval_expressions(node.arguments, env)
+            if len(args) == 1 and isinstance(args[0], MErrorObject):
+                return args[0]
 
-    return MNullObject()
+            if isinstance(function, MFunctionObject):
+                return MEvaluator.apply_function(function, args)
 
+            return MErrorObject("not a function")
 
-def eval_program(program: MProgram, env: MEnvironment) -> MObject:
-    result: MObject = MNullObject()
-
-    for stmt in program.statements:
-        result = eval(stmt, env)
-
-        if isinstance(result, MReturnValueObject):
-            return result.value
-
-        if isinstance(result, MErrorObject):
-            return result
-
-    print(result)
-    return result
-
-
-def eval_block_statement(block: MBlockStatement, env: MEnvironment) -> MObject:
-    result: MObject = MNullObject()
-
-    for stmt in block.statements:
-        result = eval(stmt, env)
-
-        if isinstance(result, MReturnValueObject) or isinstance(
-            result, MErrorObject
-        ):
-            return result
-
-    return result
-
-
-def native_bool_to_boolean_object(input: bool) -> MBooleanObject:
-    if input:
-        return MBooleanObject(True)
-    return MBooleanObject(False)
-
-
-def eval_prefix_expression(operator: str, right: MObject) -> MObject:
-    match operator:
-        case "!":
-            return eval_bang_operator_expression(right)
-
-        case "-":
-            return eval_minus_operator_expression(right)
-
-        case _:
-            return MErrorObject("unknown operator")
-
-
-def eval_infix_expression(
-    operator: str, left: MObject, right: MObject
-) -> MObject:
-    if isinstance(left, MIntegerObject) and isinstance(right, MIntegerObject):
-        return eval_integer_infix_expression(operator, left, right)
-
-    if operator == "==":
-        return MBooleanObject(left == right)
-
-    if operator == "!=":
-        return MBooleanObject(left != right)
-
-    if type(left) != type(right):
-        return MErrorObject(
-            f"type mismatch in {type(left)} {operator} {type(right)}"
-        )
-
-    return MErrorObject(
-        "unknown operator {type(left)} {operator} {type(right)}"
-    )
-
-
-def eval_bang_operator_expression(right: MObject) -> MObject:
-    if isinstance(right, MBooleanObject):
-        return MBooleanObject(not right.value)
-    return MBooleanObject(False)
-
-
-def eval_minus_operator_expression(right: MObject) -> MObject:
-    if isinstance(right, MIntegerObject):
-        return MIntegerObject(-right.value)
-    return MErrorObject("unknown operator")
-
-
-def eval_integer_infix_expression(
-    operator: str, left: MObject, right: MObject
-) -> MObject:
-    if isinstance(left, MValuedObject) and isinstance(right, MValuedObject):
-        if operator == "+":
-            return MIntegerObject(left.value + right.value)
-
-        if operator == "-":
-            return MIntegerObject(left.value - right.value)
-
-        if operator == "*":
-            return MIntegerObject(left.value * right.value)
-
-        if operator == "/":
-            return MIntegerObject(left.value // right.value)
-
-        if operator == "<":
-            return MBooleanObject(left.value < right.value)
-
-        if operator == ">":
-            return MBooleanObject(left.value > right.value)
-
-        if operator == "==":
-            return MBooleanObject(left.value == right.value)
-
-        if operator == "!=":
-            return MBooleanObject(left.value != right.value)
-
-    return MErrorObject("unknown operator")
-
-
-def eval_if_expression(ie: MIfExpression, env: MEnvironment) -> MObject:
-    condition = eval(ie.condition, env)
-    if isinstance(condition, MErrorObject):
-        return condition
-
-    if is_truthy(condition):
-        return eval(ie.consequence, env)
-
-    elif ie.alternative is not None:
-        return eval(ie.alternative, env)
-
-    else:
         return MNullObject()
 
+    @classmethod
+    def eval_program(cls, program: MProgram, env: MEnvironment) -> MObject:
+        result: MObject = MNullObject()
 
-def eval_identifier(node: MIdentifier, env: MEnvironment) -> MObject:
-    try:
-        val = env.get(node.value)
-    except KeyError:
-        return MErrorObject("identifier not found")
-    else:
-        return val
+        for stmt in program.statements:
+            result = MEvaluator.eval_node(stmt, env)
 
+            if isinstance(result, MReturnValueObject):
+                return result.value
 
-def is_truthy(obj: MObject) -> bool:
-    if isinstance(obj, MNullObject):
-        return False
+            if isinstance(result, MErrorObject):
+                return result
 
-    if isinstance(obj, MBooleanObject):
-        return obj.value
+        print(result)
+        return result
 
-    return True
+    @classmethod
+    def eval_block_statement(cls, block: MBlockStatement, env: MEnvironment) -> MObject:
+        result: MObject = MNullObject()
 
+        for stmt in block.statements:
+            result = MEvaluator.eval_node(stmt, env)
 
-def eval_expressions(
-    exps: List[MExpression], env: MEnvironment
-) -> List[MObject]:
-    result = []
+            if isinstance(result, MReturnValueObject) or isinstance(
+                result, MErrorObject
+            ):
+                return result
 
-    for e in exps:
-        evaluated = eval(e, env)
-        if isinstance(evaluated, MErrorObject):
-            return [evaluated]
+        return result
 
-        result.append(evaluated)
+    @classmethod
+    def native_bool_to_boolean_object(cls, input: bool) -> MBooleanObject:
+        if input:
+            return MBooleanObject(True)
+        return MBooleanObject(False)
 
-    return result
+    @classmethod
+    def eval_prefix_expression(cls, operator: str, right: MObject) -> MObject:
+        match operator:
+            case "!":
+                return MEvaluator.eval_bang_operator_expression(right)
 
+            case "-":
+                return MEvaluator.eval_minus_operator_expression(right)
 
-def apply_function(fn: MFunctionObject, args: List[MObject]) -> MObject:
-    extended_env = extend_function_env(fn, args)
-    evaluated = eval(fn.body, extended_env)
+            case _:
+                return MErrorObject("unknown operator")
 
-    if isinstance(evaluated, MReturnValueObject):
-        return evaluated.value
-    return evaluated
+    @classmethod
+    def eval_infix_expression(
+        cls, operator: str, left: MObject, right: MObject
+    ) -> MObject:
+        if isinstance(left, MIntegerObject) and isinstance(right, MIntegerObject):
+            return MEvaluator.eval_integer_infix_expression(operator, left, right)
 
+        if operator == "==":
+            return MBooleanObject(left == right)
 
-def extend_function_env(
-    fn: MFunctionObject, args: List[MObject]
-) -> MEnvironment:
-    env = MEnvironment.new_enclosed(fn.env)
+        if operator == "!=":
+            return MBooleanObject(left != right)
 
-    for i, param in enumerate(fn.parameters):
-        env.set(param.token.literal, args[i])
+        if type(left) != type(right):
+            return MErrorObject(
+                f"type mismatch in {type(left)} {operator} {type(right)}"
+            )
 
-    return env
+        return MErrorObject("unknown operator {type(left)} {operator} {type(right)}")
+
+    @classmethod
+    def eval_bang_operator_expression(cls, right: MObject) -> MObject:
+        if isinstance(right, MBooleanObject):
+            return MBooleanObject(not right.value)
+        return MBooleanObject(False)
+
+    @classmethod
+    def eval_minus_operator_expression(cls, right: MObject) -> MObject:
+        if isinstance(right, MIntegerObject):
+            return MIntegerObject(-right.value)
+        return MErrorObject("unknown operator")
+
+    @classmethod
+    def eval_integer_infix_expression(
+        cls, operator: str, left: MObject, right: MObject
+    ) -> MObject:
+        if isinstance(left, MValuedObject) and isinstance(right, MValuedObject):
+            if operator == "+":
+                return MIntegerObject(left.value + right.value)
+
+            if operator == "-":
+                return MIntegerObject(left.value - right.value)
+
+            if operator == "*":
+                return MIntegerObject(left.value * right.value)
+
+            if operator == "/":
+                return MIntegerObject(left.value // right.value)
+
+            if operator == "<":
+                return MBooleanObject(left.value < right.value)
+
+            if operator == ">":
+                return MBooleanObject(left.value > right.value)
+
+            if operator == "==":
+                return MBooleanObject(left.value == right.value)
+
+            if operator == "!=":
+                return MBooleanObject(left.value != right.value)
+
+        return MErrorObject("unknown operator")
+
+    @classmethod
+    def eval_if_expression(cls, ie: MIfExpression, env: MEnvironment) -> MObject:
+        condition = MEvaluator.eval_node(ie.condition, env)
+        if isinstance(condition, MErrorObject):
+            return condition
+
+        if MEvaluator.is_truthy(condition):
+            return MEvaluator.eval_node(ie.consequence, env)
+
+        elif ie.alternative is not None:
+            return MEvaluator.eval_node(ie.alternative, env)
+
+        else:
+            return MNullObject()
+
+    @classmethod
+    def eval_identifier(cls, node: MIdentifier, env: MEnvironment) -> MObject:
+        try:
+            val = env.get(node.value)
+        except KeyError:
+            return MErrorObject("identifier not found")
+        else:
+            return val
+
+    @classmethod
+    def is_truthy(cls, obj: MObject) -> bool:
+        if isinstance(obj, MNullObject):
+            return False
+
+        if isinstance(obj, MBooleanObject):
+            return obj.value
+
+        return True
+
+    @classmethod
+    def eval_expressions(
+        cls, exps: List[MExpression], env: MEnvironment
+    ) -> List[MObject]:
+        result = []
+
+        for e in exps:
+            evaluated = MEvaluator.eval_node(e, env)
+            if isinstance(evaluated, MErrorObject):
+                return [evaluated]
+
+            result.append(evaluated)
+
+        return result
+
+    @classmethod
+    def apply_function(cls, fn: MFunctionObject, args: List[MObject]) -> MObject:
+        extended_env = MEvaluator.extend_function_env(fn, args)
+        evaluated = MEvaluator.eval_node(fn.body, extended_env)
+
+        if isinstance(evaluated, MReturnValueObject):
+            return evaluated.value
+        return evaluated
+
+    @classmethod
+    def extend_function_env(
+        cls, fn: MFunctionObject, args: List[MObject]
+    ) -> MEnvironment:
+        env = MEnvironment.new_enclosed(fn.env)
+
+        for i, param in enumerate(fn.parameters):
+            env.set(param.token.literal, args[i])
+
+        return env

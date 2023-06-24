@@ -1,24 +1,24 @@
 import sys
 
-from pymonkey.mevaluator import eval
+from pymonkey.mevaluator import MEvaluator
 from pymonkey.mlexer import MLexer
-from pymonkey.mobject import MEnvironment
-from pymonkey.mparser import Parser
+from pymonkey.mparser import MParser
+from pymonkey.mrepl import repl
 
 
 def main():
-    with open(sys.argv[1], "r") as file:
-        inp = file.read()
+    if len(sys.argv) == 1:
+        repl()
 
-    lexer = MLexer(inp)
-    parser = Parser(lexer)
+    else:
+        with open(sys.argv[1], "r") as file:
+            inp = file.read()
 
-    program = parser.parse_program()
-    env = MEnvironment()
+        lexer = MLexer(inp)
+        program = MParser(lexer).parse_program()
+        evaluation = MEvaluator(program).evaluate()
 
-    evaluated = eval(program, env)
-
-    print(evaluated)
+        print(evaluation)
 
 
 if __name__ == "__main__":

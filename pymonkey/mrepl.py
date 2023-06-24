@@ -1,9 +1,8 @@
 import sys
 
-from pymonkey.mevaluator import eval
+from pymonkey.mevaluator import MEvaluator
 from pymonkey.mlexer import MLexer
-from pymonkey.mobject import MEnvironment
-from pymonkey.mparser import Parser
+from pymonkey.mparser import MParser
 
 
 def repl():
@@ -14,10 +13,8 @@ def repl():
             break
 
         lexer = MLexer(line)
-        parser = Parser(lexer)
-        program = parser.parse_program()
-        env = MEnvironment()
-        evaluation = eval(program, env)
+        program = MParser(lexer).parse_program()
+        evaluation = MEvaluator(program).evaluate()
 
         print(f"-> {evaluation}")
 

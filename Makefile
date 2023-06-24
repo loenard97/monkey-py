@@ -22,16 +22,10 @@ test:
 	pytest
 
 fmt:
-	isort pymonkey/ tests/ *.py --multi-line 3 --profile black
-	black pymonkey/ tests/ *.py
-	flake8 --config .flake8
-	mypy pymonkey/ tests/ *.py
+	isort .
+	black .
+	flake8 .
+	mypy .
 	
-
-lint:
-	flake8
-	mypy pymonkey tests
-
 build:
-	.$(PYTHON) -m setup build
-	pip install -e .
+	.$(PYTHON) pyinstaller.py

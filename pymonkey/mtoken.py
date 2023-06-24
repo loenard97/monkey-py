@@ -69,12 +69,8 @@ class MToken:
     def __eq__(self, __value: object) -> bool:
         if isinstance(__value, MToken):
             print("eq")
-            print(
-                f"{self.type=} {__value.type=} {self.literal=} {__value.type=}"
-            )
-            return (
-                self.type == __value.type and self.literal == __value.literal
-            )
+            print(f"{self.type=} {__value.type=} {self.literal=} {__value.type=}")
+            return self.type == __value.type and self.literal == __value.literal
 
         if isinstance(__value, str):
             return self.type == __value or self.literal == __value
