@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List
 
-from pymonkey.mtoken import (
+from pymonkey.lexer.mtoken import (
     ASSIGN,
     ASTERISK,
     BANG,
@@ -12,6 +12,7 @@ from pymonkey.mtoken import (
     ILLEGAL,
     KEYWORD,
     LBRACE,
+    LBRACKET,
     LESSER,
     LPAREN,
     MINUS,
@@ -19,6 +20,7 @@ from pymonkey.mtoken import (
     NUMBER,
     PLUS,
     RBRACE,
+    RBRACKET,
     RPAREN,
     SEMICOLON,
     SLASH,
@@ -48,8 +50,10 @@ class MLexer:
         self.errors: List[MLexerError] = []
 
         self._n_braces = 0
+        self._n_paren = 0
         self._n_brackets = 0
         self._last_brace = MToken.from_empty()
+        self._last_paren = MToken.from_empty()
         self._last_bracket = MToken.from_empty()
 
     def __iter__(self):
@@ -145,18 +149,18 @@ class MLexer:
                 token = MToken(
                     LPAREN, LPAREN, self.cur_file, self.cur_line, self.cur_pos
                 )
-                self._n_brackets += 1
-                self._last_bracket = token
+                self._n_paren += 1
+                self._last_paren = token
             case ")":
                 token = MToken(
                     RPAREN, RPAREN, self.cur_file, self.cur_line, self.cur_pos
                 )
-                self._n_brackets -= 1
-                if self._n_brackets < 0:
+                self._n_paren -= 1
+                if self._n_paren < 0:
                     self.errors.append(
                         MLexerError(token, "closing ')' was never opened")
                     )
-                self._last_bracket = token
+                self._last_paren = token
             case "{":
                 token = MToken(
                     LBRACE, LBRACE, self.cur_file, self.cur_line, self.cur_pos
@@ -173,6 +177,22 @@ class MLexer:
                         MLexerError(token, "closing '}' was never opened")
                     )
                 self._last_brace = token
+            case "[":
+                token = MToken(
+                    LBRACKET, LBRACKET, self.cur_file, self.cur_line, self.cur_pos
+                )
+                self._n_brackets += 1
+                self._last_bracket = token
+            case "]":
+                token = MToken(
+                    RBRACKET, RBRACKET, self.cur_file, self.cur_line, self.cur_pos
+                )
+                self._n_brackets -= 1
+                if self._n_brackets < 0:
+                    self.errors.append(
+                        MLexerError(token, "closing ']' was never opened")
+                    )
+                self._last_bracket = token
 
             case "\0":
                 raise StopIteration
@@ -241,9 +261,13 @@ class MLexer:
                 self.errors.append(
                     MLexerError(self._last_brace, "opening '{' was never closed")
                 )
+            if self._n_paren > 0:
+                self.errors.append(
+                    MLexerError(self._last_paren, "opening '(' was never closed")
+                )
             if self._n_brackets > 0:
                 self.errors.append(
-                    MLexerError(self._last_bracket, "opening '(' was never closed")
+                    MLexerError(self._last_bracket, "opening '[' was never closed")
                 )
             self._ch = "\0"
         else:
@@ -259,8 +283,12 @@ class MLexer:
                 self.errors.append(
                     MLexerError(self._last_brace, "opening '{' was never closed")
                 )
+            if self._n_paren > 0:
+                self.errors.append(
+                    MLexerError(self._last_paren, "opening '(' was never closed")
+                )
             if self._n_brackets > 0:
                 self.errors.append(
-                    MLexerError(self._last_bracket, "opening '(' was never closed")
+                    MLexerError(self._last_bracket, "opening '[' was never closed")
                 )
             return "\0"

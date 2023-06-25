@@ -1,6 +1,6 @@
 from typing import List
 
-from pymonkey.mparser import MLexer, MParser
+from pymonkey.parser.mparser import MLexer, MParser
 
 
 def test_let():
@@ -103,6 +103,15 @@ def test_function():
 
 def test_string():
     inp = ['"hello world";']
+
+    run_parser(inp)
+
+
+def test_array():
+    inp = [
+        "[1, true];",
+        "[];",
+    ]
 
     run_parser(inp)
 

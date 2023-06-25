@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List
 
-from pymonkey.mtoken import ILLEGAL, MToken
+from pymonkey.lexer.mtoken import ILLEGAL, MToken
 
 
 class MNode(ABC):
@@ -101,6 +101,16 @@ class MStringExpression(MExpression):
 
     def __str__(self):
         return f'"{self.value}"'
+
+
+@dataclass
+class MArrayExpression(MExpression):
+    value: List[MExpression]
+    token: MToken
+
+    def __str__(self):
+        args = ", ".join([str(e) for e in self.value])
+        return f"[{args}]"
 
 
 @dataclass

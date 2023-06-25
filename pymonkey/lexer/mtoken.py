@@ -32,6 +32,8 @@ LPAREN = "("
 RPAREN = ")"
 LBRACE = "{"
 RBRACE = "}"
+LBRACKET = "["
+RBRACKET = "]"
 EQUAL = "=="
 NOTEQUAL = "!="
 

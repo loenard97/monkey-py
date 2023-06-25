@@ -2,7 +2,24 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from typing import List
 
-from pymonkey.mast import (
+from pymonkey.lexer.mlexer import MLexer
+from pymonkey.lexer.mtoken import (
+    ASSIGN,
+    COMMA,
+    ELSE,
+    EOF,
+    ILLEGAL,
+    LBRACE,
+    LET,
+    LPAREN,
+    RBRACE,
+    RBRACKET,
+    RPAREN,
+    SEMICOLON,
+    MToken,
+)
+from pymonkey.parser.mast import (
+    MArrayExpression,
     MBlockStatement,
     MBooleanExpression,
     MCallExpression,
@@ -19,21 +36,6 @@ from pymonkey.mast import (
     MReturnStatement,
     MStatement,
     MStringExpression,
-)
-from pymonkey.mlexer import MLexer
-from pymonkey.mtoken import (
-    ASSIGN,
-    COMMA,
-    ELSE,
-    EOF,
-    ILLEGAL,
-    LBRACE,
-    LET,
-    LPAREN,
-    RBRACE,
-    RPAREN,
-    SEMICOLON,
-    MToken,
 )
 
 
@@ -109,6 +111,9 @@ class MParser:
 
             case "(", "(":
                 return self.parse_grouped_expression
+
+            case "[", "[":
+                return self.parse_array_literal
 
             case "Keyword", "if":
                 return self.parse_if_expression
@@ -251,6 +256,35 @@ class MParser:
         value = self.cur_token.literal == "true"
 
         return MBooleanExpression(value, token)
+
+    def parse_array_literal(self) -> MExpression:
+        token = self.cur_token
+        elements = self.parse_expression_list(RBRACKET)
+        return MArrayExpression(elements, token)
+
+    def parse_expression_list(self, end_token: str) -> List[MExpression]:
+        expr_list: List[MExpression] = []
+
+        if self.peek_token == end_token:
+            self.next_token()
+            return expr_list
+
+        self.next_token()
+        expr = self.parse_expression(Precedence.Lowest)
+        if expr is not None:
+            expr_list.append(expr)
+
+        while self.peek_token == COMMA:
+            self.next_token()
+            self.next_token()
+            expr = self.parse_expression(Precedence.Lowest)
+            if expr is not None:
+                expr_list.append(expr)
+
+        if not self.expect_peek(end_token):
+            raise UnknownTokenException("expected ]")
+
+        return expr_list
 
     def parse_grouped_expression(self) -> MExpression:
         self.next_token()

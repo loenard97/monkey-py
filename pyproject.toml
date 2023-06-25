@@ -6,6 +6,7 @@ src_paths = ["src", "main.py"]
 
 [tool.mypy]
 exclude = ["venv"]
+check_untyped_defs = true
 ignore_missing_imports = true
 disallow_any_explicit = false
 implicit_optional = true

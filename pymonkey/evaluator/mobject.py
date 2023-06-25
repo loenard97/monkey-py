@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List, Union
+from typing import Callable, List, Union
 
-from pymonkey.mast import MBlockStatement, MExpression
+from pymonkey.parser.mast import MBlockStatement, MExpression
 
 ObjectType = str
 
@@ -15,6 +15,7 @@ STRING_OBJ = "STRING"
 
 RETURN_VALUE_OBJ = "RETURN_VALUE"
 FUNCTION_OBJ = "FUNCTION"
+BUILTIN_FN = "BUILTIIN_FN"
 
 
 class MObject(ABC):
@@ -117,3 +118,12 @@ class MEnvironment:
 
     def get(self, name: str) -> MObject:
         return self.store[name]
+
+
+@dataclass
+class MBuiltinFunction(MObject):
+    fn: Callable
+    type = BUILTIN_FN
+
+    def __str__(self):
+        return "fn.__name__"

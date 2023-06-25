@@ -1,6 +1,20 @@
 from typing import List
 
-from pymonkey.mast import (
+from pymonkey.evaluator.mbuiltins import Builtins
+from pymonkey.evaluator.mobject import (
+    MBooleanObject,
+    MBuiltinFunction,
+    MEnvironment,
+    MErrorObject,
+    MFunctionObject,
+    MIntegerObject,
+    MNullObject,
+    MObject,
+    MReturnValueObject,
+    MStringObject,
+    MValuedObject,
+)
+from pymonkey.parser.mast import (
     MBlockStatement,
     MBooleanExpression,
     MCallExpression,
@@ -17,18 +31,6 @@ from pymonkey.mast import (
     MProgram,
     MReturnStatement,
     MStringExpression,
-)
-from pymonkey.mobject import (
-    MBooleanObject,
-    MEnvironment,
-    MErrorObject,
-    MFunctionObject,
-    MIntegerObject,
-    MNullObject,
-    MObject,
-    MReturnValueObject,
-    MStringObject,
-    MValuedObject,
 )
 from pymonkey.util import flog
 
@@ -116,6 +118,9 @@ class MEvaluator:
 
             if isinstance(function, MFunctionObject):
                 return MEvaluator.apply_function(function, args)
+
+            if isinstance(function, MBuiltinFunction):
+                return MEvaluator.apply_builtin(function, args)
 
             return MErrorObject("not a function")
 
@@ -273,9 +278,18 @@ class MEvaluator:
         try:
             val = env.get(node.value)
         except KeyError:
-            return MErrorObject("identifier not found")
+            pass
+            # return MErrorObject("identifier not found")
         else:
             return val
+
+        try:
+            print("builtin", node.value)
+            val = Builtins().fns[node.value]
+        except KeyError:
+            return MErrorObject("identifier not found")
+
+        return val
 
     @classmethod
     @flog
@@ -313,6 +327,12 @@ class MEvaluator:
         if isinstance(evaluated, MReturnValueObject):
             return evaluated.value
         return evaluated
+
+    @classmethod
+    @flog
+    def apply_builtin(cls, fn: MBuiltinFunction, args: List[MObject]) -> MObject:
+        print("apply bi", args)
+        return fn.fn(args)
 
     @classmethod
     @flog

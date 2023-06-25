@@ -1,12 +1,14 @@
-from pymonkey.mlexer import MLexer
-from pymonkey.mtoken import (
+from pymonkey.lexer.mlexer import MLexer
+from pymonkey.lexer.mtoken import (
     ASSIGN,
     ASTERISK,
     BANG,
     COMMA,
     EQUAL,
     GREATER,
+    KEYWORD,
     LBRACE,
+    LBRACKET,
     LESSER,
     LPAREN,
     MINUS,
@@ -14,10 +16,12 @@ from pymonkey.mtoken import (
     NUMBER,
     PLUS,
     RBRACE,
+    RBRACKET,
     RPAREN,
     SEMICOLON,
     SLASH,
     STRING,
+    TRUE,
     MToken,
 )
 
@@ -66,6 +70,22 @@ def test_string():
         MToken(STRING, "foobar"),
         MToken(SEMICOLON, SEMICOLON),
         MToken(STRING, "foo bar"),
+    ]
+
+    run_lexer(inp, tokens)
+
+
+def test_array():
+    inp = '[1, "a", true];'
+    tokens = [
+        MToken(LBRACKET, LBRACKET),
+        MToken(NUMBER, "1"),
+        MToken(COMMA, COMMA),
+        MToken(STRING, "a"),
+        MToken(COMMA, COMMA),
+        MToken(KEYWORD, TRUE),
+        MToken(RBRACKET, RBRACKET),
+        MToken(SEMICOLON, SEMICOLON),
     ]
 
     run_lexer(inp, tokens)

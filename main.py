@@ -1,9 +1,9 @@
 import sys
 
-from pymonkey.mevaluator import MEvaluator
-from pymonkey.mlexer import MLexer
-from pymonkey.mparser import MParser, UnknownTokenException
+from pymonkey.evaluator.mevaluator import MEvaluator
+from pymonkey.lexer.mlexer import MLexer
 from pymonkey.mrepl import repl
+from pymonkey.parser.mparser import MParser, UnknownTokenException
 
 
 def print_parser_errors(inp: str, parser: MParser):

@@ -1,6 +1,11 @@
-from pymonkey.mevaluator import MEvaluator
-from pymonkey.mobject import MBooleanObject, MIntegerObject, MNullObject, MStringObject
-from pymonkey.mparser import MLexer, MParser
+from pymonkey.evaluator.mevaluator import MEvaluator
+from pymonkey.evaluator.mobject import (
+    MBooleanObject,
+    MIntegerObject,
+    MNullObject,
+    MStringObject,
+)
+from pymonkey.parser.mparser import MLexer, MParser
 
 
 def evaluate_test(test_dict: dict):
@@ -130,6 +135,14 @@ def test_string():
     tests = {
         '"Hello World!";': MStringObject("Hello World!"),
         '"Hello" + " " + "World" + "!"': MStringObject("Hello World!"),
+    }
+
+    evaluate_test(tests)
+
+
+def test_builtin():
+    tests = {
+        'len("Hello World!")': MIntegerObject(12),
     }
 
     evaluate_test(tests)
