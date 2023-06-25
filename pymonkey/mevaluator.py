@@ -16,6 +16,7 @@ from pymonkey.mast import (
     MPrefixExpression,
     MProgram,
     MReturnStatement,
+    MStringExpression,
 )
 from pymonkey.mobject import (
     MBooleanObject,
@@ -26,8 +27,10 @@ from pymonkey.mobject import (
     MNullObject,
     MObject,
     MReturnValueObject,
+    MStringObject,
     MValuedObject,
 )
+from pymonkey.util import flog
 
 
 class MEvaluator:
@@ -35,10 +38,12 @@ class MEvaluator:
         self.top_node = top_node
         self.top_env = MEnvironment()
 
+    @flog
     def evaluate(self):
         return MEvaluator.eval_node(self.top_node, self.top_env)
 
     @classmethod
+    @flog
     def eval_node(cls, node: MNode, env: MEnvironment) -> MObject:
         if isinstance(node, MProgram):
             return MEvaluator.eval_program(node, env)
@@ -69,6 +74,9 @@ class MEvaluator:
         elif isinstance(node, MBooleanExpression):
             return MBooleanObject(node.value)
 
+        elif isinstance(node, MStringExpression):
+            return MStringObject(node.value)
+
         elif isinstance(node, MPrefixExpression):
             right = MEvaluator.eval_node(node.right, env)
             if isinstance(right, MErrorObject):
@@ -87,7 +95,9 @@ class MEvaluator:
             return MEvaluator.eval_infix_expression(node.operator, left, right)
 
         elif isinstance(node, MIfExpression):
-            return MEvaluator.eval_if_expression(node, env)
+            ret = MEvaluator.eval_if_expression(node, env)
+            print(f"{ret=}")
+            return ret
 
         elif isinstance(node, MIdentifier):
             return MEvaluator.eval_identifier(node, env)
@@ -112,6 +122,7 @@ class MEvaluator:
         return MNullObject()
 
     @classmethod
+    @flog
     def eval_program(cls, program: MProgram, env: MEnvironment) -> MObject:
         result: MObject = MNullObject()
 
@@ -124,10 +135,10 @@ class MEvaluator:
             if isinstance(result, MErrorObject):
                 return result
 
-        print(result)
         return result
 
     @classmethod
+    @flog
     def eval_block_statement(cls, block: MBlockStatement, env: MEnvironment) -> MObject:
         result: MObject = MNullObject()
 
@@ -142,12 +153,14 @@ class MEvaluator:
         return result
 
     @classmethod
+    @flog
     def native_bool_to_boolean_object(cls, input: bool) -> MBooleanObject:
         if input:
             return MBooleanObject(True)
         return MBooleanObject(False)
 
     @classmethod
+    @flog
     def eval_prefix_expression(cls, operator: str, right: MObject) -> MObject:
         match operator:
             case "!":
@@ -160,11 +173,15 @@ class MEvaluator:
                 return MErrorObject("unknown operator")
 
     @classmethod
+    @flog
     def eval_infix_expression(
         cls, operator: str, left: MObject, right: MObject
     ) -> MObject:
         if isinstance(left, MIntegerObject) and isinstance(right, MIntegerObject):
             return MEvaluator.eval_integer_infix_expression(operator, left, right)
+
+        if isinstance(left, MStringObject) and isinstance(right, MStringObject):
+            return MEvaluator.eval_string_infix_expression(operator, left, right)
 
         if operator == "==":
             return MBooleanObject(left == right)
@@ -180,20 +197,23 @@ class MEvaluator:
         return MErrorObject("unknown operator {type(left)} {operator} {type(right)}")
 
     @classmethod
+    @flog
     def eval_bang_operator_expression(cls, right: MObject) -> MObject:
         if isinstance(right, MBooleanObject):
             return MBooleanObject(not right.value)
         return MBooleanObject(False)
 
     @classmethod
+    @flog
     def eval_minus_operator_expression(cls, right: MObject) -> MObject:
         if isinstance(right, MIntegerObject):
             return MIntegerObject(-right.value)
         return MErrorObject("unknown operator")
 
     @classmethod
+    @flog
     def eval_integer_infix_expression(
-        cls, operator: str, left: MObject, right: MObject
+        cls, operator: str, left: MIntegerObject, right: MIntegerObject
     ) -> MObject:
         if isinstance(left, MValuedObject) and isinstance(right, MValuedObject):
             if operator == "+":
@@ -223,6 +243,16 @@ class MEvaluator:
         return MErrorObject("unknown operator")
 
     @classmethod
+    def eval_string_infix_expression(
+        cls, operator: str, left: MStringObject, right: MStringObject
+    ) -> MObject:
+        if operator == "+":
+            return MStringObject(left.value + right.value)
+
+        return MErrorObject("unknown str operator")
+
+    @classmethod
+    @flog
     def eval_if_expression(cls, ie: MIfExpression, env: MEnvironment) -> MObject:
         condition = MEvaluator.eval_node(ie.condition, env)
         if isinstance(condition, MErrorObject):
@@ -238,6 +268,7 @@ class MEvaluator:
             return MNullObject()
 
     @classmethod
+    @flog
     def eval_identifier(cls, node: MIdentifier, env: MEnvironment) -> MObject:
         try:
             val = env.get(node.value)
@@ -247,6 +278,7 @@ class MEvaluator:
             return val
 
     @classmethod
+    @flog
     def is_truthy(cls, obj: MObject) -> bool:
         if isinstance(obj, MNullObject):
             return False
@@ -257,6 +289,7 @@ class MEvaluator:
         return True
 
     @classmethod
+    @flog
     def eval_expressions(
         cls, exps: List[MExpression], env: MEnvironment
     ) -> List[MObject]:
@@ -272,6 +305,7 @@ class MEvaluator:
         return result
 
     @classmethod
+    @flog
     def apply_function(cls, fn: MFunctionObject, args: List[MObject]) -> MObject:
         extended_env = MEvaluator.extend_function_env(fn, args)
         evaluated = MEvaluator.eval_node(fn.body, extended_env)
@@ -281,6 +315,7 @@ class MEvaluator:
         return evaluated
 
     @classmethod
+    @flog
     def extend_function_env(
         cls, fn: MFunctionObject, args: List[MObject]
     ) -> MEnvironment:

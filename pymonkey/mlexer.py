@@ -1,3 +1,6 @@
+from dataclasses import dataclass
+from typing import List
+
 from pymonkey.mtoken import (
     ASSIGN,
     ASTERISK,
@@ -19,9 +22,16 @@ from pymonkey.mtoken import (
     RPAREN,
     SEMICOLON,
     SLASH,
+    STRING,
     MToken,
     keywords,
 )
+
+
+@dataclass
+class MLexerError:
+    token: MToken
+    msg: str
 
 
 class MLexer:
@@ -35,6 +45,13 @@ class MLexer:
         self.cur_pos = 0
         self._read_ch()
 
+        self.errors: List[MLexerError] = []
+
+        self._n_braces = 0
+        self._n_brackets = 0
+        self._last_brace = MToken.from_empty()
+        self._last_bracket = MToken.from_empty()
+
     def __iter__(self):
         return self
 
@@ -42,6 +59,7 @@ class MLexer:
         while self._ch.isspace():
             if self._ch == "\n":
                 self.cur_line += 1
+                self.cur_pos = 0
             self._read_ch()
 
         token = MToken(ILLEGAL, ILLEGAL, self.cur_file, self.cur_line, self.cur_pos)
@@ -115,22 +133,46 @@ class MLexer:
                     self.cur_line,
                     self.cur_pos,
                 )
+            case '"':
+                token = MToken(
+                    STRING,
+                    self._read_string(),
+                    self.cur_file,
+                    self.cur_line,
+                    self.cur_pos,
+                )
             case "(":
                 token = MToken(
                     LPAREN, LPAREN, self.cur_file, self.cur_line, self.cur_pos
                 )
+                self._n_brackets += 1
+                self._last_bracket = token
             case ")":
                 token = MToken(
                     RPAREN, RPAREN, self.cur_file, self.cur_line, self.cur_pos
                 )
+                self._n_brackets -= 1
+                if self._n_brackets < 0:
+                    self.errors.append(
+                        MLexerError(token, "closing ')' was never opened")
+                    )
+                self._last_bracket = token
             case "{":
                 token = MToken(
                     LBRACE, LBRACE, self.cur_file, self.cur_line, self.cur_pos
                 )
+                self._n_braces += 1
+                self._last_brace = token
             case "}":
                 token = MToken(
                     RBRACE, RBRACE, self.cur_file, self.cur_line, self.cur_pos
                 )
+                self._n_braces -= 1
+                if self._n_braces < 0:
+                    self.errors.append(
+                        MLexerError(token, "closing '}' was never opened")
+                    )
+                self._last_brace = token
 
             case "\0":
                 raise StopIteration
@@ -183,10 +225,26 @@ class MLexer:
         self._read_ch()
         return token
 
+    def _read_string(self) -> str:
+        pos = self._position + 1
+        while True:
+            self._read_ch()
+            if self._ch == '"' or self._ch == "\0":
+                break
+        return self._input[pos : self._position]
+
     def _read_ch(self):
         try:
             self._ch = self._input[self._read_position]
         except IndexError:
+            if self._n_braces > 0:
+                self.errors.append(
+                    MLexerError(self._last_brace, "opening '{' was never closed")
+                )
+            if self._n_brackets > 0:
+                self.errors.append(
+                    MLexerError(self._last_bracket, "opening '(' was never closed")
+                )
             self._ch = "\0"
         else:
             self._position = self._read_position
@@ -197,4 +255,12 @@ class MLexer:
         try:
             return self._input[self._read_position]
         except IndexError:
+            if self._n_braces > 0:
+                self.errors.append(
+                    MLexerError(self._last_brace, "opening '{' was never closed")
+                )
+            if self._n_brackets > 0:
+                self.errors.append(
+                    MLexerError(self._last_bracket, "opening '(' was never closed")
+                )
             return "\0"

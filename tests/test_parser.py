@@ -101,6 +101,12 @@ def test_function():
     run_parser(input)
 
 
+def test_string():
+    inp = ['"hello world";']
+
+    run_parser(inp)
+
+
 def run_parser(test: List[str]):
     for i, t in enumerate(test):
         lexer = MLexer(t)

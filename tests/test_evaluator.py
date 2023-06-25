@@ -1,5 +1,5 @@
 from pymonkey.mevaluator import MEvaluator
-from pymonkey.mobject import MBooleanObject, MIntegerObject, MNullObject
+from pymonkey.mobject import MBooleanObject, MIntegerObject, MNullObject, MStringObject
 from pymonkey.mparser import MLexer, MParser
 
 
@@ -126,6 +126,15 @@ def test_fn():
     evaluate_test(tests)
 
 
+def test_string():
+    tests = {
+        '"Hello World!";': MStringObject("Hello World!"),
+        '"Hello" + " " + "World" + "!"': MStringObject("Hello World!"),
+    }
+
+    evaluate_test(tests)
+
+
 def test_env():
     # fmt: off
     tests = {"\
@@ -135,10 +144,10 @@ def test_env():
         \
         let ourFunction = fn(first) {\
             let second = 20;\
-            first + second + third;\
+            return first + second;\
         };\
         \
-        ourFunction(20) + first + second;":
+        ourFunction(20) + first + second + third;":
              MIntegerObject(70),
     }   # NOQA: E124
     # fmt: on

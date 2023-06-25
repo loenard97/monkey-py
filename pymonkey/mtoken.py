@@ -4,6 +4,7 @@ TokenType = str
 
 IDENTIFIER = "Identifier"
 NUMBER = "Number"
+STRING = "String"
 KEYWORD = "Keyword"
 EOF = "Eof"
 ILLEGAL = "Illegal"
@@ -59,6 +60,10 @@ class MToken:
         self.file = file
         self.line = line
         self.pos = pos
+
+    @classmethod
+    def from_empty(cls):
+        return MToken(ILLEGAL, ILLEGAL, "", 0, 0)
 
     def __str__(self):
         return (

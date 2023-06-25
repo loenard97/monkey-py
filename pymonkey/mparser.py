@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from enum import Enum, auto
 from typing import List
 
@@ -17,6 +18,7 @@ from pymonkey.mast import (
     MProgram,
     MReturnStatement,
     MStatement,
+    MStringExpression,
 )
 from pymonkey.mlexer import MLexer
 from pymonkey.mtoken import (
@@ -65,8 +67,13 @@ class Precedence(Enum):
                 return cls.Lowest
 
 
+@dataclass
 class ParserError:
-    pass
+    token: MToken
+    msg: str
+
+    def __str__(self):
+        return f"Parser Error: {self.msg} @ {self.token}"
 
 
 class MParser:
@@ -82,12 +89,17 @@ class MParser:
     def __str__(self):
         return f"Parser <{self.cur_token}>"
 
+    def _record_error(self, msg: str):
+        self.errors.append(ParserError(self.cur_token, msg))
+
     def prefix_parse_fn(self, token: MToken):
         match token.type, token.literal:
             case "Identifier", _:
                 return self.parse_identifier
             case "Number", _:
                 return self.parse_integer_literal
+            case "String", _:
+                return self.parse_string_literal
 
             case "!" | "-", "!" | "-":
                 return self.parse_prefix_expression
@@ -105,7 +117,8 @@ class MParser:
                 return self.parse_function_literal
 
             case _:
-                raise UnknownTokenException(f"unknown token {self.cur_token}")
+                self._record_error("Unknown Prefix")
+                raise UnknownTokenException()
 
     def infix_parse_fn(self, token: MToken):
         match token.type, token.literal:
@@ -157,7 +170,7 @@ class MParser:
 
     def parse_let_statement(self) -> MStatement:
         if self.cur_token != LET:
-            raise UnknownTokenException(f"expected let, got token {self.cur_token}")
+            self._record_error("expected keyword let")
         token = self.cur_token
 
         self.next_token()
@@ -165,15 +178,14 @@ class MParser:
         name = MIdentifier(self.cur_token.literal, self.cur_token)
 
         if not self.expect_peek(ASSIGN):
-            raise UnknownTokenException(f"expected =, got token {self.cur_token}")
+            self._record_error("expected '='")
 
         self.next_token()
 
         value = self.parse_expression(Precedence.Lowest)
         if value is None:
-            raise UnknownTokenException(
-                f"let statement has no value, token {self.cur_token}"
-            )
+            self._record_error("let statement has no expression")
+            raise UnknownTokenException()
 
         if self.peek_token.type == SEMICOLON:
             self.next_token()
@@ -186,6 +198,7 @@ class MParser:
 
         value = self.parse_expression(Precedence.Lowest)
         if value is None:
+            self._record_error("return statement has no expression")
             raise UnknownTokenException(
                 f"return statement has no value, token {self.cur_token}"
             )
@@ -200,6 +213,7 @@ class MParser:
 
         expression = self.parse_expression(Precedence.Lowest)
         if expression is None:
+            self._record_error("expression statement has no expression")
             raise UnknownTokenException(
                 f"expr stmt has no value, token {self.cur_token}"
             )
@@ -214,6 +228,9 @@ class MParser:
         value = int(token.literal)
         return MIntegerExpression(value, token)
 
+    def parse_string_literal(self) -> MExpression:
+        return MStringExpression(self.cur_token.literal, self.cur_token)
+
     def parse_prefix_expression(self) -> MExpression:
         token = self.cur_token
         operator = token.literal
@@ -222,6 +239,7 @@ class MParser:
 
         right = self.parse_expression(Precedence.Prefix)
         if right is None:
+            self._record_error("prefix expression has no expression")
             raise UnknownTokenException(
                 f"prefix expr has no value, token {self.cur_token}"
             )
@@ -239,11 +257,13 @@ class MParser:
 
         expression = self.parse_expression(Precedence.Lowest)
         if expression is None:
+            self._record_error("grouped expression has no expression")
             raise UnknownTokenException(
                 f"grouped expr has no expr, token {self.cur_token}"
             )
 
         if not self.expect_peek(RPAREN):
+            self._record_error("expected ')'")
             raise UnknownTokenException(f"expected ), got token {self.cur_token}")
 
         return expression
@@ -252,18 +272,22 @@ class MParser:
         token = self.cur_token
 
         if not self.expect_peek(LPAREN):
+            self._record_error("expected '('")
             raise UnknownTokenException(f"expected (, got token {self.cur_token}")
 
         self.next_token()
 
         condition = self.parse_expression(Precedence.Lowest)
         if condition is None:
+            self._record_error("if statement has no condition")
             raise UnknownTokenException(f"if has no condition, token {self.cur_token}")
 
         if not self.expect_peek(RPAREN):
+            self._record_error("expected ')'")
             raise UnknownTokenException(f"expexted ), got token {self.cur_token}")
 
         if not self.expect_peek(LBRACE):
+            self._record_error("expected '{'")
             raise UnknownTokenException(f"expected {{, got token {self.cur_token}")
 
         consequence = self.parse_block_statement()
@@ -272,6 +296,7 @@ class MParser:
             self.next_token()
 
             if not self.expect_peek(LBRACE):
+                self._record_error("expected '{'")
                 raise UnknownTokenException(f"expected {{, got token {self.cur_token}")
 
             alternative = self.parse_block_statement()
@@ -285,11 +310,13 @@ class MParser:
         token = self.cur_token
 
         if not self.expect_peek(LPAREN):
-            raise UnknownTokenException(f"expected {{, got token {self.cur_token}")
+            self._record_error("expected '('")
+            raise UnknownTokenException(f"expected (, got token {self.cur_token}")
 
         parameters = self.parse_function_parameters()
 
         if not self.expect_peek(LBRACE):
+            self._record_error("expected '{'")
             raise UnknownTokenException(f"expected {{, got token {self.cur_token}")
 
         body = self.parse_block_statement()
@@ -322,6 +349,7 @@ class MParser:
             identifier.append(ident)
 
         if not self.expect_peek(RPAREN):
+            self._record_error("expected '}}'")
             raise UnknownTokenException(f"expected }}, got token {self.cur_token}")
 
         return identifier
@@ -335,6 +363,7 @@ class MParser:
 
         right = self.parse_expression(precedence)
         if right is None:
+            self._record_error("infix expression is missing right side expression")
             raise UnknownTokenException(f"infix right is none token {self.cur_token}")
 
         return MInfixExpression(operator, left, right, token)
@@ -356,6 +385,7 @@ class MParser:
 
         arg = self.parse_expression(Precedence.Lowest)
         if arg is None:
+            self._record_error("no call expression given")
             raise UnknownTokenException(f"call arg is none, token {self.cur_token}")
         args.append(arg)
 
@@ -365,10 +395,12 @@ class MParser:
 
             arg = self.parse_expression(Precedence.Lowest)
             if arg is None:
+                self._record_error("call arg is none")
                 raise UnknownTokenException(f"call arg is none token {self.cur_token}")
             args.append(arg)
 
         if not self.expect_peek(RPAREN):
+            self._record_error("expected }")
             raise UnknownTokenException(f"expected }}, got token {self.cur_token}")
 
         return args

@@ -11,6 +11,7 @@ ERROR_OBJ = "ERROR"
 
 INTEGER_OBJ = "INTEGER"
 BOOLEAN_OBJ = "BOOLEAN"
+STRING_OBJ = "STRING"
 
 RETURN_VALUE_OBJ = "RETURN_VALUE"
 FUNCTION_OBJ = "FUNCTION"
@@ -25,7 +26,7 @@ class MObject(ABC):
 
 
 class MValuedObject(MObject, ABC):
-    value: int | bool
+    value: int | bool | str
 
 
 @dataclass
@@ -51,6 +52,15 @@ class MBooleanObject(MValuedObject):
 
     def __str__(self):
         return f"{self.value}".lower()
+
+
+@dataclass
+class MStringObject(MValuedObject):
+    value: str
+    type = STRING_OBJ
+
+    def __str__(self):
+        return f"{self.value}"
 
 
 @dataclass

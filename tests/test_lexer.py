@@ -17,6 +17,7 @@ from pymonkey.mtoken import (
     RPAREN,
     SEMICOLON,
     SLASH,
+    STRING,
     MToken,
 )
 
@@ -57,6 +58,17 @@ def test_composed_token():
     ]
 
     run_lexer(input, tokens)
+
+
+def test_string():
+    inp = '"foobar"; "foo bar"'
+    tokens = [
+        MToken(STRING, "foobar"),
+        MToken(SEMICOLON, SEMICOLON),
+        MToken(STRING, "foo bar"),
+    ]
+
+    run_lexer(inp, tokens)
 
 
 def run_lexer(input, tokens):

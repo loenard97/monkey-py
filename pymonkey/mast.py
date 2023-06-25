@@ -95,6 +95,15 @@ class MIntegerExpression(MExpression):
 
 
 @dataclass
+class MStringExpression(MExpression):
+    value: str
+    token: MToken
+
+    def __str__(self):
+        return f'"{self.value}"'
+
+
+@dataclass
 class MPrefixExpression(MExpression):
     operator: str
     right: MExpression
