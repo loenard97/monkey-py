@@ -28,6 +28,7 @@ from pymonkey.parser.mast import (
     MFunctionExpression,
     MIdentifier,
     MIfExpression,
+    MIndexExpression,
     MInfixExpression,
     MIntegerExpression,
     MLetStatement,
@@ -51,6 +52,7 @@ class Precedence(Enum):
     Product = auto()
     Prefix = auto()
     Call = auto()
+    Index = auto()
 
     @classmethod
     def from_token(cls, token: MToken):
@@ -65,6 +67,8 @@ class Precedence(Enum):
                 return cls.Product
             case "(":
                 return cls.Call
+            case "[":
+                return cls.Index
             case _:
                 return cls.Lowest
 
@@ -132,6 +136,9 @@ class MParser:
 
             case "(", _:
                 return self.parse_call_expression
+
+            case "[", _:
+                return self.parse_index_expression
 
             case _:
                 return None
@@ -438,6 +445,20 @@ class MParser:
             raise UnknownTokenException(f"expected }}, got token {self.cur_token}")
 
         return args
+
+    def parse_index_expression(self, left: MExpression) -> MExpression:
+        token = self.cur_token
+
+        self.next_token()
+
+        index = self.parse_expression(Precedence.Lowest)
+        if index is None:
+            raise UnknownTokenException()
+
+        if not self.expect_peek(RBRACKET):
+            raise UnknownTokenException()
+
+        return MIndexExpression(left, index, token)
 
     def parse_block_statement(self) -> MBlockStatement:
         token = self.cur_token

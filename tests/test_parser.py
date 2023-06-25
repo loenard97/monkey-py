@@ -116,6 +116,12 @@ def test_array():
     run_parser(inp)
 
 
+def test_index():
+    inp = ["arr[1 + 1];"]
+
+    run_parser(inp)
+
+
 def run_parser(test: List[str]):
     for i, t in enumerate(test):
         lexer = MLexer(t)

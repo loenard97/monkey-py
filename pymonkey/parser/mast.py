@@ -170,3 +170,13 @@ class MCallExpression(MExpression):
     def __str__(self):
         args = ", ".join([str(a) for a in self.arguments])
         return f"{self.function}({args})"
+
+
+@dataclass
+class MIndexExpression(MExpression):
+    left: MExpression
+    index: MExpression
+    token: MToken
+
+    def __str__(self):
+        return f"{self.left}[{self.index}]"

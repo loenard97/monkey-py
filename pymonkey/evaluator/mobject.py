@@ -4,23 +4,8 @@ from typing import Callable, List, Union
 
 from pymonkey.parser.mast import MBlockStatement, MExpression
 
-ObjectType = str
-
-NULL_OBJ = "NULL"
-ERROR_OBJ = "ERROR"
-
-INTEGER_OBJ = "INTEGER"
-BOOLEAN_OBJ = "BOOLEAN"
-STRING_OBJ = "STRING"
-
-RETURN_VALUE_OBJ = "RETURN_VALUE"
-FUNCTION_OBJ = "FUNCTION"
-BUILTIN_FN = "BUILTIIN_FN"
-
 
 class MObject(ABC):
-    type: ObjectType
-
     @abstractmethod
     def __str__(self):
         return NotImplementedError
@@ -40,7 +25,6 @@ class MNullObject(MObject):
 @dataclass
 class MIntegerObject(MValuedObject):
     value: int
-    type = INTEGER_OBJ
 
     def __str__(self):
         return f"{self.value}"
@@ -49,7 +33,6 @@ class MIntegerObject(MValuedObject):
 @dataclass
 class MBooleanObject(MValuedObject):
     value: bool
-    type = BOOLEAN_OBJ
 
     def __str__(self):
         return f"{self.value}".lower()
@@ -58,7 +41,6 @@ class MBooleanObject(MValuedObject):
 @dataclass
 class MStringObject(MValuedObject):
     value: str
-    type = STRING_OBJ
 
     def __str__(self):
         return f"{self.value}"
@@ -67,7 +49,6 @@ class MStringObject(MValuedObject):
 @dataclass
 class MReturnValueObject(MObject):
     value: MObject
-    type = RETURN_VALUE_OBJ
 
     def __str__(self):
         return f"{self.value}"
@@ -76,7 +57,6 @@ class MReturnValueObject(MObject):
 @dataclass
 class MErrorObject(MObject):
     message: str
-    type = ERROR_OBJ
 
     def __str__(self):
         return f"ERROR: {self.message}"
@@ -87,7 +67,6 @@ class MFunctionObject(MObject):
     parameters: List[MExpression]
     body: MBlockStatement
     env: "MEnvironment"
-    type = FUNCTION_OBJ
 
     def __str__(self):
         params = ", ".join([str(p) for p in self.parameters])
@@ -123,7 +102,15 @@ class MEnvironment:
 @dataclass
 class MBuiltinFunction(MObject):
     fn: Callable
-    type = BUILTIN_FN
 
     def __str__(self):
         return "fn.__name__"
+
+
+@dataclass
+class MArrayObject(MObject):
+    value: List[MObject]
+
+    def __str__(self):
+        vals = ", ".join([str(e) for e in self.value])
+        return f"[{vals}]"

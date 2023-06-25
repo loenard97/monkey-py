@@ -1,9 +1,11 @@
 from typing import List
 
 from pymonkey.evaluator.mobject import (
+    MArrayObject,
     MBuiltinFunction,
     MErrorObject,
     MIntegerObject,
+    MObject,
     MStringObject,
 )
 
@@ -14,7 +16,14 @@ class Builtins:
             "len": MBuiltinFunction(self.len),
         }
 
-    def len(self, args: List[MStringObject]):
-        if len(args) == 1 and isinstance(args[0], MStringObject):
+    def len(self, args: List[MObject]):
+        if len(args) != 1:
+            return MErrorObject("len needs exactly one argument")
+
+        if isinstance(args[0], MStringObject):
             return MIntegerObject(len(args[0].value))
-        return MErrorObject("len needs 1 String arg")
+
+        if isinstance(args[0], MArrayObject):
+            return MIntegerObject(len(args[0].value))
+
+        return MErrorObject("len unknown expression")

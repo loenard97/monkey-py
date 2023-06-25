@@ -1,5 +1,6 @@
 from pymonkey.evaluator.mevaluator import MEvaluator
 from pymonkey.evaluator.mobject import (
+    MArrayObject,
     MBooleanObject,
     MIntegerObject,
     MNullObject,
@@ -164,5 +165,21 @@ def test_env():
              MIntegerObject(70),
     }   # NOQA: E124
     # fmt: on
+
+    evaluate_test(tests)
+
+
+def test_array():
+    tests = {
+        "[1, 2 * 2, 3 + 3];": MArrayObject(
+            [MIntegerObject(1), MIntegerObject(4), MIntegerObject(6)]
+        ),
+        "[1, 2, 3][0];": MIntegerObject(1),
+        "[1, 2, 3][2];": MIntegerObject(3),
+        "let i = 0; [1][i];": MIntegerObject(1),
+        "[1, 2, 3][1 + 1];": MIntegerObject(3),
+        "[1, 2, 3][-1];": MNullObject(),
+        "[1, 2, 3][3];": MNullObject(),
+    }
 
     evaluate_test(tests)

@@ -2,6 +2,7 @@ from typing import List
 
 from pymonkey.evaluator.mbuiltins import Builtins
 from pymonkey.evaluator.mobject import (
+    MArrayObject,
     MBooleanObject,
     MBuiltinFunction,
     MEnvironment,
@@ -15,6 +16,7 @@ from pymonkey.evaluator.mobject import (
     MValuedObject,
 )
 from pymonkey.parser.mast import (
+    MArrayExpression,
     MBlockStatement,
     MBooleanExpression,
     MCallExpression,
@@ -23,6 +25,7 @@ from pymonkey.parser.mast import (
     MFunctionExpression,
     MIdentifier,
     MIfExpression,
+    MIndexExpression,
     MInfixExpression,
     MIntegerExpression,
     MLetStatement,
@@ -78,6 +81,23 @@ class MEvaluator:
 
         elif isinstance(node, MStringExpression):
             return MStringObject(node.value)
+
+        elif isinstance(node, MArrayExpression):
+            elements = MEvaluator.eval_expressions(node.value, env)
+            if len(elements) == 1 and isinstance(elements[0], MErrorObject):
+                return elements[0]
+            return MArrayObject(elements)
+
+        elif isinstance(node, MIndexExpression):
+            left = MEvaluator.eval_node(node.left, env)
+            if isinstance(left, MErrorObject):
+                return left
+
+            index = MEvaluator.eval_node(node.index, env)
+            if isinstance(index, MErrorObject):
+                return index
+
+            return MEvaluator.eval_index_expression(left, index)
 
         elif isinstance(node, MPrefixExpression):
             right = MEvaluator.eval_node(node.right, env)
@@ -317,6 +337,24 @@ class MEvaluator:
             result.append(evaluated)
 
         return result
+
+    @classmethod
+    def eval_index_expression(cls, left: MObject, index: MObject) -> MObject:
+        if isinstance(left, MArrayObject) and isinstance(index, MIntegerObject):
+            return MEvaluator.eval_array_index_expression(left, index)
+
+        return MErrorObject("index operator not supported")
+
+    @classmethod
+    def eval_array_index_expression(
+        cls, left: MArrayObject, index: MIntegerObject
+    ) -> MObject:
+        max = len(left.value) - 1
+
+        if index.value < 0 or index.value > max:
+            return MNullObject()
+
+        return left.value[index.value]
 
     @classmethod
     @flog
