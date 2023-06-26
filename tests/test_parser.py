@@ -122,6 +122,15 @@ def test_index():
     run_parser(inp)
 
 
+def test_hashmap():
+    input_ = [
+        '{"one": 1, "two": 2, "three": 3};',
+        "{};",
+    ]
+
+    run_parser(input_)
+
+
 def run_parser(test: List[str]):
     for i, t in enumerate(test):
         lexer = MLexer(t)

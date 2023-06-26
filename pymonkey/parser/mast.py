@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List
+from typing import Dict, Hashable, List
 
 from pymonkey.lexer.mtoken import ILLEGAL, MToken
 
@@ -19,6 +19,22 @@ class MStatement(MNode):
 
 class MExpression(MNode):
     pass
+
+
+class MValuedExpression(MExpression):
+    """
+    Valued Expression that can be hashed and therefore used as dict keys.
+    Child classes need to use @dataclass(eq=False, frozen=True), otherwise dataclass overwrites __hash__ to None.
+    See unsafe_hash parameter of dataclass:
+    https://docs.python.org/3/library/dataclasses.html
+    """
+
+    value: Hashable = NotImplemented
+
+    def __hash__(self) -> int:
+        # hash only self.value and not self.token, to ensure same hashes between equal valued MExpressions.
+        # include type(self) in hash, to ensure different hashes between different types.
+        return (type(self), self.value).__hash__()
 
 
 @dataclass
@@ -76,8 +92,8 @@ class MBlockStatement(MStatement):
         return "\n".join(str(s) for s in self.statements)
 
 
-@dataclass
-class MBooleanExpression(MExpression):
+@dataclass(eq=False, frozen=True)
+class MBooleanExpression(MValuedExpression):
     value: bool
     token: MToken
 
@@ -85,8 +101,8 @@ class MBooleanExpression(MExpression):
         return f"{self.value}".lower()
 
 
-@dataclass
-class MIntegerExpression(MExpression):
+@dataclass(eq=False, frozen=True)
+class MIntegerExpression(MValuedExpression):
     value: int
     token: MToken
 
@@ -94,8 +110,8 @@ class MIntegerExpression(MExpression):
         return f"{self.value}"
 
 
-@dataclass
-class MStringExpression(MExpression):
+@dataclass(eq=False, frozen=True)
+class MStringExpression(MValuedExpression):
     value: str
     token: MToken
 
@@ -180,3 +196,13 @@ class MIndexExpression(MExpression):
 
     def __str__(self):
         return f"{self.left}[{self.index}]"
+
+
+@dataclass
+class MHashExpression(MExpression):
+    pairs: Dict[MValuedExpression, MExpression]
+    token: MToken
+
+    def __str__(self):
+        pairs = ", ".join([f"{key}: {value}" for key, value in self.pairs.items()])
+        return f"{{{pairs}}}"

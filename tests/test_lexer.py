@@ -3,6 +3,7 @@ from pymonkey.lexer.mtoken import (
     ASSIGN,
     ASTERISK,
     BANG,
+    COLON,
     COMMA,
     EQUAL,
     GREATER,
@@ -89,6 +90,20 @@ def test_array():
     ]
 
     run_lexer(inp, tokens)
+
+
+def test_hashmap():
+    input_ = '{"foo": "bar"};'
+    tokens = [
+        MToken(LBRACE, LBRACE),
+        MToken(STRING, "foo"),
+        MToken(COLON, COLON),
+        MToken(STRING, "bar"),
+        MToken(RBRACE, RBRACE),
+        MToken(SEMICOLON, SEMICOLON),
+    ]
+
+    run_lexer(input_, tokens)
 
 
 def run_lexer(input, tokens):

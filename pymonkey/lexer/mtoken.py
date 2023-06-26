@@ -28,6 +28,7 @@ GREATER = ">"
 
 COMMA = ","
 SEMICOLON = ";"
+COLON = ":"
 LPAREN = "("
 RPAREN = ")"
 LBRACE = "{"

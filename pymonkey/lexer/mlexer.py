@@ -5,6 +5,7 @@ from pymonkey.lexer.mtoken import (
     ASSIGN,
     ASTERISK,
     BANG,
+    COLON,
     COMMA,
     EQUAL,
     GREATER,
@@ -137,6 +138,8 @@ class MLexer:
                     self.cur_line,
                     self.cur_pos,
                 )
+            case ":":
+                token = MToken(COLON, COLON, self.cur_file, self.cur_line, self.cur_pos)
             case '"':
                 token = MToken(
                     STRING,

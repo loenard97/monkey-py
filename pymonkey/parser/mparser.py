@@ -5,6 +5,7 @@ from typing import List
 from pymonkey.lexer.mlexer import MLexer
 from pymonkey.lexer.mtoken import (
     ASSIGN,
+    COLON,
     COMMA,
     ELSE,
     EOF,
@@ -26,6 +27,7 @@ from pymonkey.parser.mast import (
     MExpression,
     MExpressionStatement,
     MFunctionExpression,
+    MHashExpression,
     MIdentifier,
     MIfExpression,
     MIndexExpression,
@@ -37,6 +39,7 @@ from pymonkey.parser.mast import (
     MReturnStatement,
     MStatement,
     MStringExpression,
+    MValuedExpression,
 )
 
 
@@ -118,6 +121,9 @@ class MParser:
 
             case "[", "[":
                 return self.parse_array_literal
+
+            case "{", "{":
+                return self.parse_hash_literal
 
             case "Keyword", "if":
                 return self.parse_if_expression
@@ -292,6 +298,35 @@ class MParser:
             raise UnknownTokenException("expected ]")
 
         return expr_list
+
+    def parse_hash_literal(self) -> MExpression:
+        token = self.cur_token
+        pairs = dict()
+
+        while self.peek_token != RBRACE:
+            self.next_token()
+            key = self.parse_expression(Precedence.Lowest)
+            if not isinstance(key, MValuedExpression):
+                raise UnknownTokenException("not a hashable type")
+
+            if not self.expect_peek(COLON):
+                raise UnknownTokenException()
+
+            self.next_token()
+
+            value = self.parse_expression(Precedence.Lowest)
+            if value is None:
+                raise UnknownTokenException("not a value")
+
+            pairs[key] = value
+
+            if self.peek_token != RBRACE and not self.expect_peek(COMMA):
+                raise UnknownTokenException()
+
+        if not self.expect_peek(RBRACE):
+            raise UnknownTokenException()
+
+        return MHashExpression(pairs, token)
 
     def parse_grouped_expression(self) -> MExpression:
         self.next_token()
