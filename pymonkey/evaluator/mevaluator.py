@@ -8,6 +8,7 @@ from pymonkey.evaluator.mobject import (
     MEnvironment,
     MErrorObject,
     MFunctionObject,
+    MHashMapObject,
     MIntegerObject,
     MNullObject,
     MObject,
@@ -23,6 +24,7 @@ from pymonkey.parser.mast import (
     MExpression,
     MExpressionStatement,
     MFunctionExpression,
+    MHashExpression,
     MIdentifier,
     MIfExpression,
     MIndexExpression,
@@ -35,7 +37,6 @@ from pymonkey.parser.mast import (
     MReturnStatement,
     MStringExpression,
 )
-from pymonkey.util import flog
 
 
 class MEvaluator:
@@ -43,12 +44,10 @@ class MEvaluator:
         self.top_node = top_node
         self.top_env = MEnvironment()
 
-    @flog
     def evaluate(self):
         return MEvaluator.eval_node(self.top_node, self.top_env)
 
     @classmethod
-    @flog
     def eval_node(cls, node: MNode, env: MEnvironment) -> MObject:
         if isinstance(node, MProgram):
             return MEvaluator.eval_program(node, env)
@@ -99,6 +98,9 @@ class MEvaluator:
 
             return MEvaluator.eval_index_expression(left, index)
 
+        elif isinstance(node, MHashExpression):
+            return MEvaluator.eval_hash_literal(node, env)
+
         elif isinstance(node, MPrefixExpression):
             right = MEvaluator.eval_node(node.right, env)
             if isinstance(right, MErrorObject):
@@ -118,7 +120,6 @@ class MEvaluator:
 
         elif isinstance(node, MIfExpression):
             ret = MEvaluator.eval_if_expression(node, env)
-            print(f"{ret=}")
             return ret
 
         elif isinstance(node, MIdentifier):
@@ -147,7 +148,6 @@ class MEvaluator:
         return MNullObject()
 
     @classmethod
-    @flog
     def eval_program(cls, program: MProgram, env: MEnvironment) -> MObject:
         result: MObject = MNullObject()
 
@@ -163,7 +163,6 @@ class MEvaluator:
         return result
 
     @classmethod
-    @flog
     def eval_block_statement(cls, block: MBlockStatement, env: MEnvironment) -> MObject:
         result: MObject = MNullObject()
 
@@ -178,14 +177,12 @@ class MEvaluator:
         return result
 
     @classmethod
-    @flog
     def native_bool_to_boolean_object(cls, input: bool) -> MBooleanObject:
         if input:
             return MBooleanObject(True)
         return MBooleanObject(False)
 
     @classmethod
-    @flog
     def eval_prefix_expression(cls, operator: str, right: MObject) -> MObject:
         match operator:
             case "!":
@@ -198,7 +195,6 @@ class MEvaluator:
                 return MErrorObject("unknown operator")
 
     @classmethod
-    @flog
     def eval_infix_expression(
         cls, operator: str, left: MObject, right: MObject
     ) -> MObject:
@@ -222,21 +218,18 @@ class MEvaluator:
         return MErrorObject("unknown operator {type(left)} {operator} {type(right)}")
 
     @classmethod
-    @flog
     def eval_bang_operator_expression(cls, right: MObject) -> MObject:
         if isinstance(right, MBooleanObject):
             return MBooleanObject(not right.value)
         return MBooleanObject(False)
 
     @classmethod
-    @flog
     def eval_minus_operator_expression(cls, right: MObject) -> MObject:
         if isinstance(right, MIntegerObject):
             return MIntegerObject(-right.value)
         return MErrorObject("unknown operator")
 
     @classmethod
-    @flog
     def eval_integer_infix_expression(
         cls, operator: str, left: MIntegerObject, right: MIntegerObject
     ) -> MObject:
@@ -277,7 +270,6 @@ class MEvaluator:
         return MErrorObject("unknown str operator")
 
     @classmethod
-    @flog
     def eval_if_expression(cls, ie: MIfExpression, env: MEnvironment) -> MObject:
         condition = MEvaluator.eval_node(ie.condition, env)
         if isinstance(condition, MErrorObject):
@@ -293,7 +285,6 @@ class MEvaluator:
             return MNullObject()
 
     @classmethod
-    @flog
     def eval_identifier(cls, node: MIdentifier, env: MEnvironment) -> MObject:
         try:
             val = env.get(node.value)
@@ -304,7 +295,6 @@ class MEvaluator:
             return val
 
         try:
-            print("builtin", node.value)
             val = Builtins().fns[node.value]
         except KeyError:
             return MErrorObject("identifier not found")
@@ -312,7 +302,6 @@ class MEvaluator:
         return val
 
     @classmethod
-    @flog
     def is_truthy(cls, obj: MObject) -> bool:
         if isinstance(obj, MNullObject):
             return False
@@ -323,7 +312,6 @@ class MEvaluator:
         return True
 
     @classmethod
-    @flog
     def eval_expressions(
         cls, exps: List[MExpression], env: MEnvironment
     ) -> List[MObject]:
@@ -343,6 +331,9 @@ class MEvaluator:
         if isinstance(left, MArrayObject) and isinstance(index, MIntegerObject):
             return MEvaluator.eval_array_index_expression(left, index)
 
+        if isinstance(left, MHashMapObject) and isinstance(index, MValuedObject):
+            return MEvaluator.eval_hash_index_expression(left, index)
+
         return MErrorObject("index operator not supported")
 
     @classmethod
@@ -357,7 +348,13 @@ class MEvaluator:
         return left.value[index.value]
 
     @classmethod
-    @flog
+    def eval_hash_index_expression(cls, left: MHashMapObject, index: MValuedObject) -> MObject:
+        try:
+            return left.value[index]
+        except KeyError:
+            return MNullObject()
+
+    @classmethod
     def apply_function(cls, fn: MFunctionObject, args: List[MObject]) -> MObject:
         extended_env = MEvaluator.extend_function_env(fn, args)
         evaluated = MEvaluator.eval_node(fn.body, extended_env)
@@ -367,13 +364,10 @@ class MEvaluator:
         return evaluated
 
     @classmethod
-    @flog
     def apply_builtin(cls, fn: MBuiltinFunction, args: List[MObject]) -> MObject:
-        print("apply bi", args)
         return fn.fn(args)
 
     @classmethod
-    @flog
     def extend_function_env(
         cls, fn: MFunctionObject, args: List[MObject]
     ) -> MEnvironment:
@@ -383,3 +377,22 @@ class MEvaluator:
             env.set(param.token.literal, args[i])
 
         return env
+
+    @classmethod
+    def eval_hash_literal(cls, node: MHashExpression, env: MEnvironment) -> MObject:
+        hash_dict = dict()
+
+        for node_key, node_value in node.pairs.items():
+            key = MEvaluator.eval_node(node_key, env)
+            if isinstance(key, MErrorObject):
+                return key
+            if not isinstance(key, MValuedObject):
+                return MErrorObject("key not hashable")
+
+            value = MEvaluator.eval_node(node_value, env)
+            if isinstance(value, MErrorObject):
+                return value
+
+            hash_dict[key] = value
+
+        return MHashMapObject(hash_dict)

@@ -1,8 +1,8 @@
 import sys
 
-from pymonkey.mevaluator import MEvaluator
-from pymonkey.mlexer import MLexer
-from pymonkey.mparser import MParser
+from pymonkey.evaluator.mevaluator import MEvaluator
+from pymonkey.lexer.mlexer import MLexer
+from pymonkey.parser.mparser import MParser
 
 
 def repl():

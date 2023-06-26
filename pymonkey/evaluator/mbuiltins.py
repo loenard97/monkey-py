@@ -14,6 +14,7 @@ class Builtins:
     def __init__(self):
         self.fns = {
             "len": MBuiltinFunction(self.len),
+            "puts": MBuiltinFunction(self.puts),
         }
 
     def len(self, args: List[MObject]):
@@ -27,3 +28,6 @@ class Builtins:
             return MIntegerObject(len(args[0].value))
 
         return MErrorObject("len unknown expression")
+
+    def puts(self, args: List[MObject]):
+        print(*args)

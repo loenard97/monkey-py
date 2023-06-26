@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Callable, List, Union
+from typing import Callable, Dict, Hashable, List, Self, Union
 
 from pymonkey.parser.mast import MBlockStatement, MExpression
 
@@ -12,7 +12,13 @@ class MObject(ABC):
 
 
 class MValuedObject(MObject, ABC):
-    value: int | bool | str
+    value: Hashable
+    
+    def __hash__(self) -> int:
+        return (type(self), self.value).__hash__()
+
+    def __eq__(self, other: Self) -> bool:
+        return self.value.__eq__(other.value)
 
 
 @dataclass
@@ -22,7 +28,7 @@ class MNullObject(MObject):
         return "None"
 
 
-@dataclass
+@dataclass(eq=False, frozen=True)
 class MIntegerObject(MValuedObject):
     value: int
 
@@ -30,7 +36,7 @@ class MIntegerObject(MValuedObject):
         return f"{self.value}"
 
 
-@dataclass
+@dataclass(eq=False, frozen=True)
 class MBooleanObject(MValuedObject):
     value: bool
 
@@ -38,7 +44,7 @@ class MBooleanObject(MValuedObject):
         return f"{self.value}".lower()
 
 
-@dataclass
+@dataclass(eq=False, frozen=True)
 class MStringObject(MValuedObject):
     value: str
 
@@ -114,3 +120,12 @@ class MArrayObject(MObject):
     def __str__(self):
         vals = ", ".join([str(e) for e in self.value])
         return f"[{vals}]"
+
+
+@dataclass
+class MHashMapObject(MObject):
+    value: Dict[MValuedObject, MObject]
+
+    def __str__(self):
+        vals = ", ".join([f"{key}: {value}" for key, value in self.value.items()])
+        return f"{{{vals}}}"

@@ -1,6 +1,37 @@
 from dataclasses import dataclass
+from enum import Enum, auto
 
-TokenType = str
+class TokenType(Enum):
+    Identifier = auto()
+    Number = auto()
+    String = auto()
+    Keyword = auto()
+    Eof = auto()
+    Illegal = auto()
+
+    Assign = auto()
+    Plus = auto()
+    Minus = auto()
+    Bang = auto()
+    Asterisk = auto()
+    Slash = auto()
+    Lesser = auto()
+    LesserEqual = auto()
+    Greater = auto()
+    GreaterEqual = auto()
+    Equal = auto()
+    NotEqual = auto()
+
+    Comma = auto()
+    Semicolon = auto()
+    Colon = auto()
+    LParen = auto()
+    RParen = auto()
+    LBrace = auto()
+    RBrace = auto()
+    LBracket = auto()
+    RBracket = auto()
+
 
 IDENTIFIER = "Identifier"
 NUMBER = "Number"

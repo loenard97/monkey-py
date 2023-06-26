@@ -32,6 +32,13 @@ if (x == 0) {
 
 This Implementation contains an Interpreter and a REPL:
 ```sh
+python main.py <file_name>
+```
+interprets a .monkey file.
+
+Running main without arguments starts a sandbox REPL, that evaluates each statement:
+
+```sh
 python main.py
 >> x = 3
 3
