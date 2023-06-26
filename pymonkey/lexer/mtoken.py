@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum, auto
+from typing import Optional
+
 
 class TokenType(Enum):
     Identifier = auto()
@@ -33,85 +35,30 @@ class TokenType(Enum):
     RBracket = auto()
 
 
-IDENTIFIER = "Identifier"
-NUMBER = "Number"
-STRING = "String"
-KEYWORD = "Keyword"
-EOF = "Eof"
-ILLEGAL = "Illegal"
-
-FUNCTION = "function"
-LET = "let"
-TRUE = "true"
-FALSE = "false"
-IF = "if"
-ELSE = "else"
-RETURN = "return"
-
-ASSIGN = "="
-PLUS = "+"
-MINUS = "-"
-BANG = "!"
-ASTERISK = "*"
-SLASH = "/"
-LESSER = "<"
-GREATER = ">"
-
-COMMA = ","
-SEMICOLON = ";"
-COLON = ":"
-LPAREN = "("
-RPAREN = ")"
-LBRACE = "{"
-RBRACE = "}"
-LBRACKET = "["
-RBRACKET = "]"
-EQUAL = "=="
-NOTEQUAL = "!="
-
-keywords = {
-    "fn": FUNCTION,
-    "let": LET,
-    "true": TRUE,
-    "false": FALSE,
-    "if": IF,
-    "else": ELSE,
-    "return": RETURN,
-}
+KEYWORDS = ["fn", "let", "true", "false", "if", "else", "return"]
 
 
 @dataclass
-class MToken:
-    type: TokenType
-    literal: str
+class TokenPosition:
     file: str
     line: int
     pos: int
 
-    def __init__(self, type, literal, file="", line=0, pos=0):
-        self.type = type
-        self.literal = literal
-        self.file = file
-        self.line = line
-        self.pos = pos
 
-    @classmethod
-    def from_empty(cls):
-        return MToken(ILLEGAL, ILLEGAL, "", 0, 0)
+@dataclass
+class MToken:
+    type: TokenType = TokenType.Illegal
+    literal: Optional[str] = None
+    position: TokenPosition = TokenPosition("", 0, 0)
 
     def __str__(self):
-        return (
-            f"Token <{self.type}, {self.literal}, {self.file}, {self.line},"
-            f" {self.pos}>"
-        )
+        return f"Token <{self.type}, {self.literal}, {self.position.file}, {self.position.line}, {self.position.pos}>"
 
-    def __eq__(self, __value: object) -> bool:
-        if isinstance(__value, MToken):
-            print("eq")
-            print(f"{self.type=} {__value.type=} {self.literal=} {__value.type=}")
-            return self.type == __value.type and self.literal == __value.literal
+    def __eq__(self, other: "MToken | str") -> bool:
+        if isinstance(other, MToken):
+            return self.type == other.type and self.literal == other.literal
 
-        if isinstance(__value, str):
-            return self.type == __value or self.literal == __value
+        if isinstance(other, str):
+            return self.type == other or self.literal == other
 
-        return False
+        raise TypeError("can only compare MToken to MToken or str")

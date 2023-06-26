@@ -13,7 +13,7 @@ class MObject(ABC):
 
 class MValuedObject(MObject, ABC):
     value: Hashable
-    
+
     def __hash__(self) -> int:
         return (type(self), self.value).__hash__()
 

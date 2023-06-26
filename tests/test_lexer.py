@@ -1,39 +1,14 @@
 from pymonkey.lexer.mlexer import MLexer
-from pymonkey.lexer.mtoken import (
-    ASSIGN,
-    ASTERISK,
-    BANG,
-    COLON,
-    COMMA,
-    EQUAL,
-    GREATER,
-    KEYWORD,
-    LBRACE,
-    LBRACKET,
-    LESSER,
-    LPAREN,
-    MINUS,
-    NOTEQUAL,
-    NUMBER,
-    PLUS,
-    RBRACE,
-    RBRACKET,
-    RPAREN,
-    SEMICOLON,
-    SLASH,
-    STRING,
-    TRUE,
-    MToken,
-)
+from pymonkey.lexer.mtoken import MToken, TokenType
 
 
 def test_token():
     input = "=+(){},;-!/*<>"
     tokens = [
-        MToken(ASSIGN, ASSIGN),
-        MToken(PLUS, PLUS),
-        MToken(LPAREN, LPAREN),
-        MToken(RPAREN, RPAREN),
+        MToken(TokenType.Assign, "="),
+        MToken(TokenType.Plus, "+"),
+        MToken(TokenType.LParen, "("),
+        MToken(TokenType.RParen, ")"),
         MToken(LBRACE, LBRACE),
         MToken(RBRACE, RBRACE),
         MToken(COMMA, COMMA),
@@ -107,7 +82,7 @@ def test_hashmap():
 
 
 def run_lexer(input, tokens):
-    lexer = MLexer(input)
+    lexer = MLexer(input, "test")
 
     for lex_token, token in zip(lexer, tokens):
         print(f"{lex_token=} {token=}")

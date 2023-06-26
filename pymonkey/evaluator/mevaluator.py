@@ -348,7 +348,9 @@ class MEvaluator:
         return left.value[index.value]
 
     @classmethod
-    def eval_hash_index_expression(cls, left: MHashMapObject, index: MValuedObject) -> MObject:
+    def eval_hash_index_expression(
+        cls, left: MHashMapObject, index: MValuedObject
+    ) -> MObject:
         try:
             return left.value[index]
         except KeyError:

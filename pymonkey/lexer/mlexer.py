@@ -1,34 +1,7 @@
 from dataclasses import dataclass
 from typing import List
 
-from pymonkey.lexer.mtoken import (
-    ASSIGN,
-    ASTERISK,
-    BANG,
-    COLON,
-    COMMA,
-    EQUAL,
-    GREATER,
-    IDENTIFIER,
-    ILLEGAL,
-    KEYWORD,
-    LBRACE,
-    LBRACKET,
-    LESSER,
-    LPAREN,
-    MINUS,
-    NOTEQUAL,
-    NUMBER,
-    PLUS,
-    RBRACE,
-    RBRACKET,
-    RPAREN,
-    SEMICOLON,
-    SLASH,
-    STRING,
-    MToken,
-    keywords,
-)
+from pymonkey.lexer.mtoken import KEYWORDS, MToken, TokenPosition, TokenType
 
 
 @dataclass
@@ -38,24 +11,23 @@ class MLexerError:
 
 
 class MLexer:
-    def __init__(self, input):
+    def __init__(self, input, file_name):
         self._input = input
         self._position = 0
         self._read_position = 0
         self._ch = ""
-        self.cur_file = ""
-        self.cur_line = 0
-        self.cur_pos = 0
-        self._read_ch()
+        self._token_position = TokenPosition(file_name, 0, 0)
 
         self.errors: List[MLexerError] = []
 
         self._n_braces = 0
         self._n_paren = 0
         self._n_brackets = 0
-        self._last_brace = MToken.from_empty()
-        self._last_paren = MToken.from_empty()
-        self._last_bracket = MToken.from_empty()
+        self._last_brace = MToken()
+        self._last_paren = MToken()
+        self._last_bracket = MToken()
+
+        self._read_ch()
 
     def __iter__(self):
         return self
@@ -63,101 +35,53 @@ class MLexer:
     def __next__(self) -> MToken:
         while self._ch.isspace():
             if self._ch == "\n":
-                self.cur_line += 1
-                self.cur_pos = 0
+                self._token_position.line += 1
+                self._token_position.pos = 0
             self._read_ch()
 
-        token = MToken(ILLEGAL, ILLEGAL, self.cur_file, self.cur_line, self.cur_pos)
+        token = MToken()
         match self._ch:
             case "=":
                 if self._next_ch() == "=":
                     self._read_ch()
-                    token = MToken(
-                        EQUAL,
-                        EQUAL,
-                        self.cur_file,
-                        self.cur_line,
-                        self.cur_pos,
-                    )
+                    token = MToken(TokenType.Equal, "==", self._token_position)
                 else:
-                    token = MToken(
-                        ASSIGN,
-                        ASSIGN,
-                        self.cur_file,
-                        self.cur_line,
-                        self.cur_pos,
-                    )
+                    token = MToken(TokenType.Assign, "=", self._token_position)
             case "+":
-                token = MToken(PLUS, PLUS, self.cur_file, self.cur_line, self.cur_pos)
+                token = MToken(TokenType.Plus, "+", self._token_position)
             case "-":
-                token = MToken(MINUS, MINUS, self.cur_file, self.cur_line, self.cur_pos)
+                token = MToken(TokenType.Minus, "-", self._token_position)
             case "!":
                 if self._next_ch() == "=":
                     self._read_ch()
-                    token = MToken(
-                        NOTEQUAL,
-                        NOTEQUAL,
-                        self.cur_file,
-                        self.cur_line,
-                        self.cur_pos,
-                    )
+                    token = MToken(TokenType.NotEqual, "!=", self._token_position)
                 else:
-                    token = MToken(
-                        BANG, BANG, self.cur_file, self.cur_line, self.cur_pos
-                    )
+                    token = MToken(TokenType.Bang, "!", self._token_position)
             case "*":
-                token = MToken(
-                    ASTERISK,
-                    ASTERISK,
-                    self.cur_file,
-                    self.cur_line,
-                    self.cur_pos,
-                )
+                token = MToken(TokenType.Asterisk, "*", self._token_position)
             case "/":
-                token = MToken(SLASH, SLASH, self.cur_file, self.cur_line, self.cur_pos)
+                token = MToken(TokenType.Slash, "/", self._token_position)
             case "<":
-                token = MToken(
-                    LESSER, LESSER, self.cur_file, self.cur_line, self.cur_pos
-                )
+                token = MToken(TokenType.Lesser, "<", self._token_position)
             case ">":
-                token = MToken(
-                    GREATER,
-                    GREATER,
-                    self.cur_file,
-                    self.cur_line,
-                    self.cur_pos,
-                )
+                token = MToken(TokenType.Greater, ">", self._token_position)
 
             case ",":
-                token = MToken(COMMA, COMMA, self.cur_file, self.cur_line, self.cur_pos)
+                token = MToken(TokenType.Comma, ",", self._token_position)
             case ";":
-                token = MToken(
-                    SEMICOLON,
-                    SEMICOLON,
-                    self.cur_file,
-                    self.cur_line,
-                    self.cur_pos,
-                )
+                token = MToken(TokenType.Semicolon, ";", self._token_position)
             case ":":
-                token = MToken(COLON, COLON, self.cur_file, self.cur_line, self.cur_pos)
+                token = MToken(TokenType.Colon, ":", self._token_position)
             case '"':
                 token = MToken(
-                    STRING,
-                    self._read_string(),
-                    self.cur_file,
-                    self.cur_line,
-                    self.cur_pos,
+                    TokenType.String, self._read_string(), self._token_position
                 )
             case "(":
-                token = MToken(
-                    LPAREN, LPAREN, self.cur_file, self.cur_line, self.cur_pos
-                )
+                token = MToken(TokenType.LParen, "(", self._token_position)
                 self._n_paren += 1
                 self._last_paren = token
             case ")":
-                token = MToken(
-                    RPAREN, RPAREN, self.cur_file, self.cur_line, self.cur_pos
-                )
+                token = MToken(TokenType.RParen, ")", self._token_position)
                 self._n_paren -= 1
                 if self._n_paren < 0:
                     self.errors.append(
@@ -165,15 +89,11 @@ class MLexer:
                     )
                 self._last_paren = token
             case "{":
-                token = MToken(
-                    LBRACE, LBRACE, self.cur_file, self.cur_line, self.cur_pos
-                )
+                token = MToken(TokenType.LBrace, "{", self._token_position)
                 self._n_braces += 1
                 self._last_brace = token
             case "}":
-                token = MToken(
-                    RBRACE, RBRACE, self.cur_file, self.cur_line, self.cur_pos
-                )
+                token = MToken(TokenType.RBrace, "}", self._token_position)
                 self._n_braces -= 1
                 if self._n_braces < 0:
                     self.errors.append(
@@ -181,15 +101,11 @@ class MLexer:
                     )
                 self._last_brace = token
             case "[":
-                token = MToken(
-                    LBRACKET, LBRACKET, self.cur_file, self.cur_line, self.cur_pos
-                )
+                token = MToken(TokenType.LBracket, "[", self._token_position)
                 self._n_brackets += 1
                 self._last_bracket = token
             case "]":
-                token = MToken(
-                    RBRACKET, RBRACKET, self.cur_file, self.cur_line, self.cur_pos
-                )
+                token = MToken(TokenType.RBracket, "]", self._token_position)
                 self._n_brackets -= 1
                 if self._n_brackets < 0:
                     self.errors.append(
@@ -206,21 +122,13 @@ class MLexer:
                     while self._ch.isalpha():
                         self._read_ch()
                     identifier = self._input[pos : self._position]
-                    if identifier in keywords:
+                    if identifier in KEYWORDS:
                         return MToken(
-                            KEYWORD,
-                            identifier,
-                            self.cur_file,
-                            self.cur_line,
-                            self.cur_pos,
+                            TokenType.Keyword, identifier, self._token_position
                         )
                     else:
                         return MToken(
-                            IDENTIFIER,
-                            identifier,
-                            self.cur_file,
-                            self.cur_line,
-                            self.cur_pos,
+                            TokenType.Identifier, identifier, self._token_position
                         )
 
                 elif self._ch.isnumeric():
@@ -228,22 +136,10 @@ class MLexer:
                     while self._ch.isnumeric():
                         self._read_ch()
                     number = self._input[pos : self._position]
-                    return MToken(
-                        NUMBER,
-                        number,
-                        self.cur_file,
-                        self.cur_line,
-                        self.cur_pos,
-                    )
+                    return MToken(TokenType.Number, number, self._token_position)
 
                 else:
-                    token = MToken(
-                        ILLEGAL,
-                        ILLEGAL,
-                        self.cur_file,
-                        self.cur_line,
-                        self.cur_pos,
-                    )
+                    token = MToken()
 
         self._read_ch()
         return token
@@ -276,7 +172,7 @@ class MLexer:
         else:
             self._position = self._read_position
             self._read_position += 1
-            self.cur_pos += 1
+            self._token_position.pos += 1
 
     def _next_ch(self) -> str:
         try:
