@@ -1,24 +1,9 @@
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import List
+from typing import Callable, List
 
 from pymonkey.lexer.mlexer import MLexer
-from pymonkey.lexer.mtoken import (
-    ASSIGN,
-    COLON,
-    COMMA,
-    ELSE,
-    EOF,
-    ILLEGAL,
-    LBRACE,
-    LET,
-    LPAREN,
-    RBRACE,
-    RBRACKET,
-    RPAREN,
-    SEMICOLON,
-    MToken,
-)
+from pymonkey.lexer.mtoken import MToken, MTokenPosition, MTokenType
 from pymonkey.parser.mast import (
     MArrayExpression,
     MBlockStatement,
@@ -27,7 +12,7 @@ from pymonkey.parser.mast import (
     MExpression,
     MExpressionStatement,
     MFunctionExpression,
-    MHashExpression,
+    MHashMapExpression,
     MIdentifier,
     MIfExpression,
     MIndexExpression,
@@ -59,21 +44,19 @@ class Precedence(Enum):
 
     @classmethod
     def from_token(cls, token: MToken):
-        match token.type:
-            case "==" | "!=":
-                return cls.Equals
-            case "<" | ">":
-                return cls.Comparison
-            case "+" | "-":
-                return cls.Sum
-            case "*" | "/":
-                return cls.Product
-            case "(":
-                return cls.Call
-            case "[":
-                return cls.Index
-            case _:
-                return cls.Lowest
+        if token.type == MTokenType.Equal or token.type == MTokenType.NotEqual:
+            return cls.Equals
+        if token.type == MTokenType.Lesser or token.type == MTokenType.Greater:
+            return cls.Comparison
+        if token.type == MTokenType.Plus or token.type == MTokenType.Minus:
+            return cls.Sum
+        if token.type == MTokenType.Asterisk or token.type == MTokenType.Slash:
+            return cls.Product
+        if token.type == MTokenType.LParen:
+            return cls.Call
+        if token.type == MTokenType.LBracket:
+            return cls.Index
+        return cls.Lowest
 
 
 @dataclass
@@ -89,8 +72,8 @@ class MParser:
     def __init__(self, lexer: MLexer):
         self.lexer = lexer
         self.errors: List[ParserError] = []
-        self.cur_token = MToken(ILLEGAL, ILLEGAL, "", 0, 0)
-        self.peek_token = MToken(ILLEGAL, ILLEGAL, "", 0, 0)
+        self.cur_token = MToken()
+        self.peek_token = MToken()
 
         self.next_token()
         self.next_token()
@@ -101,49 +84,51 @@ class MParser:
     def _record_error(self, msg: str):
         self.errors.append(ParserError(self.cur_token, msg))
 
-    def prefix_parse_fn(self, token: MToken):
-        match token.type, token.literal:
-            case "Identifier", _:
-                return self.parse_identifier
-            case "Number", _:
-                return self.parse_integer_literal
-            case "String", _:
-                return self.parse_string_literal
-
-            case "!" | "-", "!" | "-":
-                return self.parse_prefix_expression
-
-            case "Keyword", "true" | "false":
-                return self.parse_boolean
-
-            case "(", "(":
-                return self.parse_grouped_expression
-
-            case "[", "[":
-                return self.parse_array_literal
-
-            case "{", "{":
-                return self.parse_hash_literal
-
-            case "Keyword", "if":
-                return self.parse_if_expression
-
-            case "Keyword", "fn":
-                return self.parse_function_literal
-
-            case _:
-                self._record_error("Unknown Prefix")
-                raise UnknownTokenException()
+    def prefix_parse_fn(self, token: MToken) -> Callable:
+        if token.type == MTokenType.Identifier:
+            return self.parse_identifier
+        if token.type == MTokenType.Number:
+            return self.parse_integer_literal
+        if token.type == MTokenType.String:
+            return self.parse_string_literal
+        if token.type == MTokenType.Bang or token.type == MTokenType.Minus:
+            return self.parse_prefix_expression
+        if token.type == MTokenType.Keyword and (
+            token.literal == "true" or token.literal == "false"
+        ):
+            return self.parse_boolean
+        if token.type == MTokenType.LParen:
+            return self.parse_grouped_expression
+        if token.type == MTokenType.LBracket:
+            return self.parse_array_literal
+        if token.type == MTokenType.LBrace:
+            return self.parse_hash_literal
+        if token.type == MTokenType.Keyword and token.literal == "if":
+            return self.parse_if_expression
+        if token.type == MTokenType.Keyword and token.literal == "fn":
+            return self.parse_function_literal
+        self._record_error("unknown prefix")
+        raise UnknownTokenException()
 
     def infix_parse_fn(self, token: MToken):
         match token.type, token.literal:
-            case "+" | "-" | "/" | "*" | "==" | "!=" | "<" | ">", _:
+            case (
+                MTokenType.Plus
+                | MTokenType.Minus
+                | MTokenType.Slash
+                | MTokenType.Asterisk
+                | MTokenType.Equal
+                | MTokenType.NotEqual
+                | MTokenType.Lesser
+                | MTokenType.Greater,
+                _,
+            ):
                 return self.parse_infix_expression
 
-            case "(", _:
+            case MTokenType.LParen, _:
                 return self.parse_call_expression
 
-            case "[", _:
+            case MTokenType.LBracket, _:
                 return self.parse_index_expression
 
             case _:
@@ -154,10 +139,10 @@ class MParser:
         try:
             self.peek_token = next(self.lexer)
         except StopIteration:
-            self.peek_token = MToken(EOF, EOF, "", 0, 0)
+            self.peek_token = MToken(MTokenType.Eof, "EOF", MTokenPosition("", 0, 0))
 
-    def expect_peek(self, token_type) -> bool:
-        if self.peek_token == token_type:
+    def expect_peek(self, token_type: MTokenType) -> bool:
+        if self.peek_token.type == token_type:
             self.next_token()
             return True
         return False
@@ -165,7 +150,7 @@ class MParser:
     def parse_program(self) -> MProgram:
         statements = []
 
-        while self.cur_token.type != EOF:
+        while self.cur_token.type != MTokenType.Eof:
             statements.append(self.parse_statement())
             self.next_token()
 
@@ -179,15 +164,18 @@ class MParser:
 
     def parse_statement(self) -> MStatement:
         match self.cur_token.type, self.cur_token.literal:
-            case "Keyword", "let":
+            case MTokenType.Keyword, "let":
                 return self.parse_let_statement()
-            case "Keyword", "return":
+            case MTokenType.Keyword, "return":
                 return self.parse_return_statement()
             case _:
                 return self.parse_expression_statement()
 
     def parse_let_statement(self) -> MStatement:
-        if self.cur_token != LET:
+        if (
+            self.cur_token.type != MTokenType.Keyword
+            and self.cur_token.literal != "let"
+        ):
             self._record_error("expected keyword let")
         token = self.cur_token
 
@@ -195,7 +183,7 @@ class MParser:
 
         name = MIdentifier(self.cur_token.literal, self.cur_token)
 
-        if not self.expect_peek(ASSIGN):
+        if not self.expect_peek(MTokenType.Assign):
             self._record_error("expected '='")
 
         self.next_token()
@@ -205,7 +193,7 @@ class MParser:
             self._record_error("let statement has no expression")
             raise UnknownTokenException()
 
-        if self.peek_token.type == SEMICOLON:
+        if self.peek_token.type == MTokenType.Semicolon:
             self.next_token()
 
         return MLetStatement(name, value, token)
@@ -221,7 +209,7 @@ class MParser:
                 f"return statement has no value, token {self.cur_token}"
             )
 
-        if self.peek_token.type == SEMICOLON:
+        if self.peek_token.type == MTokenType.Semicolon:
             self.next_token()
 
         return MReturnStatement(value, token)
@@ -236,7 +224,7 @@ class MParser:
                 f"expr stmt has no value, token {self.cur_token}"
             )
 
-        if self.peek_token.type == SEMICOLON:
+        if self.peek_token.type == MTokenType.Semicolon:
             self.next_token()
 
         return MExpressionStatement(expression, token)
@@ -272,13 +260,13 @@ class MParser:
 
     def parse_array_literal(self) -> MExpression:
         token = self.cur_token
-        elements = self.parse_expression_list(RBRACKET)
+        elements = self.parse_expression_list(MTokenType.RBracket)
         return MArrayExpression(elements, token)
 
-    def parse_expression_list(self, end_token: str) -> List[MExpression]:
+    def parse_expression_list(self, end_token: MTokenType) -> List[MExpression]:
         expr_list: List[MExpression] = []
 
-        if self.peek_token == end_token:
+        if self.peek_token.type == end_token:
             self.next_token()
             return expr_list
 
@@ -287,7 +275,7 @@ class MParser:
         if expr is not None:
             expr_list.append(expr)
 
-        while self.peek_token == COMMA:
+        while self.peek_token.type == MTokenType.Comma:
             self.next_token()
             self.next_token()
             expr = self.parse_expression(Precedence.Lowest)
@@ -303,13 +291,13 @@ class MParser:
         token = self.cur_token
         pairs = dict()
 
-        while self.peek_token != RBRACE:
+        while self.peek_token.type != MTokenType.RBrace:
             self.next_token()
             key = self.parse_expression(Precedence.Lowest)
             if not isinstance(key, MValuedExpression):
                 raise UnknownTokenException("not a hashable type")
 
-            if not self.expect_peek(COLON):
+            if not self.expect_peek(MTokenType.Colon):
                 raise UnknownTokenException()
 
             self.next_token()
@@ -320,13 +308,15 @@ class MParser:
 
             pairs[key] = value
 
-            if self.peek_token != RBRACE and not self.expect_peek(COMMA):
+            if self.peek_token.type != MTokenType.RBrace and not self.expect_peek(
+                MTokenType.Comma
+            ):
                 raise UnknownTokenException()
 
-        if not self.expect_peek(RBRACE):
+        if not self.expect_peek(MTokenType.RBrace):
             raise UnknownTokenException()
 
-        return MHashExpression(pairs, token)
+        return MHashMapExpression(pairs, token)
 
     def parse_grouped_expression(self) -> MExpression:
         self.next_token()
@@ -338,7 +328,7 @@ class MParser:
                 f"grouped expr has no expr, token {self.cur_token}"
             )
 
-        if not self.expect_peek(RPAREN):
+        if not self.expect_peek(MTokenType.RParen):
             self._record_error("expected ')'")
             raise UnknownTokenException(f"expected ), got token {self.cur_token}")
 
@@ -347,7 +337,7 @@ class MParser:
     def parse_if_expression(self) -> MExpression:
         token = self.cur_token
 
-        if not self.expect_peek(LPAREN):
+        if not self.expect_peek(MTokenType.LParen):
             self._record_error("expected '('")
             raise UnknownTokenException(f"expected (, got token {self.cur_token}")
 
@@ -358,20 +348,23 @@ class MParser:
             self._record_error("if statement has no condition")
             raise UnknownTokenException(f"if has no condition, token {self.cur_token}")
 
-        if not self.expect_peek(RPAREN):
+        if not self.expect_peek(MTokenType.RParen):
             self._record_error("expected ')'")
             raise UnknownTokenException(f"expexted ), got token {self.cur_token}")
 
-        if not self.expect_peek(LBRACE):
+        if not self.expect_peek(MTokenType.LBrace):
             self._record_error("expected '{'")
             raise UnknownTokenException(f"expected {{, got token {self.cur_token}")
 
         consequence = self.parse_block_statement()
 
-        if self.peek_token.literal == ELSE:
+        if (
+            self.peek_token.type == MTokenType.Keyword
+            and self.peek_token.literal == "else"
+        ):
             self.next_token()
 
-            if not self.expect_peek(LBRACE):
+            if not self.expect_peek(MTokenType.LBrace):
                 self._record_error("expected '{'")
                 raise UnknownTokenException(f"expected {{, got token {self.cur_token}")
 
@@ -385,13 +378,13 @@ class MParser:
     def parse_function_literal(self) -> MExpression:
         token = self.cur_token
 
-        if not self.expect_peek(LPAREN):
+        if not self.expect_peek(MTokenType.LParen):
             self._record_error("expected '('")
             raise UnknownTokenException(f"expected (, got token {self.cur_token}")
 
         parameters = self.parse_function_parameters()
 
-        if not self.expect_peek(LBRACE):
+        if not self.expect_peek(MTokenType.LBrace):
             self._record_error("expected '{'")
             raise UnknownTokenException(f"expected {{, got token {self.cur_token}")
 
@@ -402,7 +395,7 @@ class MParser:
     def parse_function_parameters(self) -> List[MExpression]:
         identifier: List[MExpression] = []
 
-        if self.peek_token.type == RPAREN:
+        if self.peek_token.type == MTokenType.RParen:
             self.next_token()
             return identifier
 
@@ -414,7 +407,7 @@ class MParser:
 
         identifier.append(ident)
 
-        while self.peek_token.type == COMMA:
+        while self.peek_token.type == MTokenType.Comma:
             self.next_token()
             self.next_token()
 
@@ -424,7 +417,7 @@ class MParser:
 
             identifier.append(ident)
 
-        if not self.expect_peek(RPAREN):
+        if not self.expect_peek(MTokenType.RParen):
             self._record_error("expected '}}'")
             raise UnknownTokenException(f"expected }}, got token {self.cur_token}")
 
@@ -453,7 +446,7 @@ class MParser:
     def parse_call_arguments(self) -> List[MExpression]:
         args: List[MExpression] = []
 
-        if self.peek_token.type == RPAREN:
+        if self.peek_token.type == MTokenType.RParen:
             self.next_token()
             return args
 
@@ -465,7 +458,7 @@ class MParser:
             raise UnknownTokenException(f"call arg is none, token {self.cur_token}")
         args.append(arg)
 
-        while self.peek_token.type == COMMA:
+        while self.peek_token.type == MTokenType.Comma:
             self.next_token()
             self.next_token()
 
@@ -475,7 +468,7 @@ class MParser:
                 raise UnknownTokenException(f"call arg is none token {self.cur_token}")
             args.append(arg)
 
-        if not self.expect_peek(RPAREN):
+        if not self.expect_peek(MTokenType.RParen):
             self._record_error("expected }")
             raise UnknownTokenException(f"expected }}, got token {self.cur_token}")
 
@@ -490,7 +483,7 @@ class MParser:
         if index is None:
             raise UnknownTokenException()
 
-        if not self.expect_peek(RBRACKET):
+        if not self.expect_peek(MTokenType.RBracket):
             raise UnknownTokenException()
 
         return MIndexExpression(left, index, token)
@@ -501,7 +494,10 @@ class MParser:
 
         self.next_token()
 
-        while self.cur_token.type != RBRACE and self.cur_token.type != EOF:
+        while (
+            self.cur_token.type != MTokenType.RBrace
+            and self.cur_token.type != MTokenType.Eof
+        ):
             stmt = self.parse_statement()
             statements.append(stmt)
             self.next_token()
@@ -520,7 +516,7 @@ class MParser:
         peek_precedence = Precedence.from_token(self.peek_token)
 
         while (
-            self.peek_token.type != SEMICOLON
+            self.peek_token.type != MTokenType.Semicolon
             and precedence.value < peek_precedence.value
         ):
             infix = self.infix_parse_fn(self.peek_token)

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Callable, Dict, Hashable, List, Self, Union
+from typing import Callable, Dict, Hashable, List, Union
 
 from pymonkey.parser.mast import MBlockStatement, MExpression
 
@@ -17,8 +17,10 @@ class MValuedObject(MObject, ABC):
     def __hash__(self) -> int:
         return (type(self), self.value).__hash__()
 
-    def __eq__(self, other: Self) -> bool:
-        return self.value.__eq__(other.value)
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, type(self)):
+            return self.value.__eq__(other.value)
+        raise TypeError("can only compare MValuedObject to same type of MValuedObject")
 
 
 @dataclass
@@ -84,25 +86,20 @@ class MEnvironment:
     store: dict
     outer: Union["MEnvironment", None]
 
-    def __init__(self):
-        self.store = {}
-        self.outer = None
-
     def __str__(self):
-        return f"Environment <{self.store}>"
-
-    @classmethod
-    def new_enclosed(cls, outer: "MEnvironment") -> "MEnvironment":
-        ret = cls()
-        ret.outer = outer
-        return ret
+        return f"Environment <{self.store}, {self.outer}>"
 
     def set(self, name: str, val: MObject):
         self.store[name] = val
         return val
 
     def get(self, name: str) -> MObject:
-        return self.store[name]
+        try:
+            return self.store[name]
+        except KeyError:
+            if self.outer is not None:
+                return self.outer.store[name]
+        raise KeyError
 
 
 @dataclass
@@ -110,7 +107,7 @@ class MBuiltinFunction(MObject):
     fn: Callable
 
     def __str__(self):
-        return "fn.__name__"
+        return f"{self.fn.__name__}"
 
 
 @dataclass

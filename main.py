@@ -11,10 +11,15 @@ def print_parser_errors(inp: str, parser: MParser):
 
     for err in parser.errors:
         print(f"Error: {err.msg}")
-        print(f"-> File: {err.token.file}:{err.token.line+1}:{err.token.pos}")
-        print("   |")
-        print(f" {err.token.line+1} | {inp_lines[err.token.line]}")
-        print(f"   | {'-' * (err.token.pos - 1)}^\n")
+        if err.token.position is not None:
+            print(
+                f"-> File: {err.token.position.file}:{err.token.position.line+1}:{err.token.position.pos}"
+            )
+            print("   |")
+            print(
+                f" {err.token.position.line+1} | {inp_lines[err.token.position.line]}"
+            )
+            print(f"   | {'-' * (err.token.position.pos - 1)}^\n")
 
 
 def print_lexer_errors(inp: str, lexer: MLexer):
@@ -22,10 +27,15 @@ def print_lexer_errors(inp: str, lexer: MLexer):
 
     for err in lexer.errors:
         print(f"Error: {err.msg}")
-        print(f"-> File: {err.token.file}:{err.token.line+1}:{err.token.pos}")
-        print("   |")
-        print(f" {err.token.line+1} | {inp_lines[err.token.line]}")
-        print(f"   | {'-' * (err.token.pos - 1)}^\n")
+        if err.token.position is not None:
+            print(
+                f"-> File: {err.token.position.file}:{err.token.position.line+1}:{err.token.position.pos}"
+            )
+            print("   |")
+            print(
+                f" {err.token.position.line+1} | {inp_lines[err.token.position.line]}"
+            )
+            print(f"   | {'-' * (err.token.position.pos - 1)}^\n")
 
 
 def main():

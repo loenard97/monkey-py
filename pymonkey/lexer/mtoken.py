@@ -2,8 +2,10 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Optional
 
+KEYWORDS = ["fn", "let", "true", "false", "if", "else", "return"]
 
-class TokenType(Enum):
+
+class MTokenType(Enum):
     Identifier = auto()
     Number = auto()
     String = auto()
@@ -35,11 +37,8 @@ class TokenType(Enum):
     RBracket = auto()
 
 
-KEYWORDS = ["fn", "let", "true", "false", "if", "else", "return"]
-
-
 @dataclass
-class TokenPosition:
+class MTokenPosition:
     file: str
     line: int
     pos: int
@@ -47,18 +46,6 @@ class TokenPosition:
 
 @dataclass
 class MToken:
-    type: TokenType = TokenType.Illegal
-    literal: Optional[str] = None
-    position: TokenPosition = TokenPosition("", 0, 0)
-
-    def __str__(self):
-        return f"Token <{self.type}, {self.literal}, {self.position.file}, {self.position.line}, {self.position.pos}>"
-
-    def __eq__(self, other: "MToken | str") -> bool:
-        if isinstance(other, MToken):
-            return self.type == other.type and self.literal == other.literal
-
-        if isinstance(other, str):
-            return self.type == other or self.literal == other
-
-        raise TypeError("can only compare MToken to MToken or str")
+    type: MTokenType = MTokenType.Illegal
+    literal: str = ""
+    position: Optional[MTokenPosition] = None

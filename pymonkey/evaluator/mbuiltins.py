@@ -21,10 +21,7 @@ class Builtins:
         if len(args) != 1:
             return MErrorObject("len needs exactly one argument")
 
-        if isinstance(args[0], MStringObject):
-            return MIntegerObject(len(args[0].value))
-
-        if isinstance(args[0], MArrayObject):
+        if isinstance(args[0], MStringObject) or isinstance(args[0], MArrayObject):
             return MIntegerObject(len(args[0].value))
 
         return MErrorObject("len unknown expression")

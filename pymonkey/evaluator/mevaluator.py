@@ -24,7 +24,7 @@ from pymonkey.parser.mast import (
     MExpression,
     MExpressionStatement,
     MFunctionExpression,
-    MHashExpression,
+    MHashMapExpression,
     MIdentifier,
     MIfExpression,
     MIndexExpression,
@@ -42,7 +42,7 @@ from pymonkey.parser.mast import (
 class MEvaluator:
     def __init__(self, top_node: MNode):
         self.top_node = top_node
-        self.top_env = MEnvironment()
+        self.top_env = MEnvironment(store={}, outer=None)
 
     def evaluate(self):
         return MEvaluator.eval_node(self.top_node, self.top_env)
@@ -98,7 +98,7 @@ class MEvaluator:
 
             return MEvaluator.eval_index_expression(left, index)
 
-        elif isinstance(node, MHashExpression):
+        elif isinstance(node, MHashMapExpression):
             return MEvaluator.eval_hash_literal(node, env)
 
         elif isinstance(node, MPrefixExpression):
@@ -373,7 +373,7 @@ class MEvaluator:
     def extend_function_env(
         cls, fn: MFunctionObject, args: List[MObject]
     ) -> MEnvironment:
-        env = MEnvironment.new_enclosed(fn.env)
+        env = MEnvironment(store={}, outer=fn.env)
 
         for i, param in enumerate(fn.parameters):
             env.set(param.token.literal, args[i])
@@ -381,7 +381,7 @@ class MEvaluator:
         return env
 
     @classmethod
-    def eval_hash_literal(cls, node: MHashExpression, env: MEnvironment) -> MObject:
+    def eval_hash_literal(cls, node: MHashMapExpression, env: MEnvironment) -> MObject:
         hash_dict = dict()
 
         for node_key, node_value in node.pairs.items():

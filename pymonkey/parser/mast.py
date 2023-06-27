@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Dict, Hashable, List
 
-from pymonkey.lexer.mtoken import ILLEGAL, MToken
+from pymonkey.lexer.mtoken import MToken
 
 
 class MNode(ABC):
@@ -40,7 +40,7 @@ class MValuedExpression(MExpression):
 @dataclass
 class MProgram(MNode):
     statements: List[MStatement]
-    token = MToken(ILLEGAL, ILLEGAL, "", 0, 0)
+    token = MToken()
 
     def __str__(self):
         return "\n".join(str(s) for s in self.statements)
@@ -199,7 +199,7 @@ class MIndexExpression(MExpression):
 
 
 @dataclass
-class MHashExpression(MExpression):
+class MHashMapExpression(MExpression):
     pairs: Dict[MValuedExpression, MExpression]
     token: MToken
 
