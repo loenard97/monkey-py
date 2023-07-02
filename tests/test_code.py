@@ -20,12 +20,11 @@ def assert_instructions_string(test_input: Dict):
         assert str(instructions) == value, f"Test {i} failed"
 
 
-
 def test_make():
     test_input = {
         (MOpcode.OpConstant, 0): b"\x01\x00\x00",
         (MOpcode.OpConstant, 65534): b"\x01\xFF\xFE",
-        (MOpcode.OpAdd, ): b"\x02",
+        (MOpcode.OpAdd,): b"\x03",
     }
 
     run_test(test_input)
@@ -36,12 +35,13 @@ def test_instructions_string():
         (
             (MOpcode.OpConstant, 0),
             (MOpcode.OpConstant, 65534),
-            (MOpcode.OpAdd, ),
-        ):
-        "\
+            (MOpcode.OpAdd,),
+            (MOpcode.OpPop,),
+        ): "\
 0000 MOpcode.OpConstant 0x00 0x00\n\
 0003 MOpcode.OpConstant 0xff 0xfe\n\
-0006 MOpcode.OpAdd"
+0006 MOpcode.OpAdd\n\
+0007 MOpcode.OpPop"
     }
 
     assert_instructions_string(test_input)

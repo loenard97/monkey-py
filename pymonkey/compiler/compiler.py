@@ -7,6 +7,7 @@ from pymonkey.parser.mast import (
     MExpressionStatement,
     MInfixExpression,
     MIntegerExpression,
+    MBooleanExpression,
     MNode,
     MProgram,
 )
@@ -28,13 +29,23 @@ class Compiler:
 
         elif isinstance(node, MExpressionStatement):
             self.compile(node.expression)
+            self.emit(MOpcode.OpPop)
 
         elif isinstance(node, MInfixExpression):
             self.compile(node.left)
             self.compile(node.right)
 
-            if node.operator == '+':
+            if node.operator == "+":
                 self.emit(MOpcode.OpAdd)
+
+            elif node.operator == "-":
+                self.emit(MOpcode.OpSub)
+
+            elif node.operator == "*":
+                self.emit(MOpcode.OpMul)
+
+            elif node.operator == "/":
+                self.emit(MOpcode.OpDiv)
 
             else:
                 raise TypeError("unknown operator")
@@ -42,6 +53,15 @@ class Compiler:
         elif isinstance(node, MIntegerExpression):
             integer = MIntegerObject(node.value)
             self.emit(MOpcode.OpConstant, self.add_constant(integer))
+
+        elif isinstance(node, MBooleanExpression):
+            if node.value:
+                self.emit(MOpcode.OpTrue)
+            else:
+                self.emit(MOpcode.OpFalse)
+
+        else:
+            raise TypeError(f"unknown MObject {node}")
 
     def emit(self, op: MOpcode, *operands) -> int:
         ins = Encoder.make(op, *operands)

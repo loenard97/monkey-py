@@ -7,6 +7,7 @@ from pymonkey.parser.mparser import MParser
 
 def assert_instructions(i, compiled: Instructions, expected):
     offset = 0
+    assert len(compiled.instructions) == len(expected)
     for ins, exp in zip(compiled.instructions, expected):
         operation = MOpcode(ins[0])
         operands = []
@@ -35,7 +36,12 @@ def run_test(test_input):
 def test_integer():
     test_input = {
         "1 + 2;": [
-            [[0, MOpcode.OpConstant, 0x00, 0x00], [3, MOpcode.OpConstant, 0x00, 0x01], [6, MOpcode.OpAdd]],
+            [
+                [0, MOpcode.OpConstant, 0x00, 0x00],
+                [3, MOpcode.OpConstant, 0x00, 0x01],
+                [6, MOpcode.OpAdd],
+                [7, MOpcode.OpPop],
+            ],
             [MIntegerObject(1), MIntegerObject(2)],
         ],
     }

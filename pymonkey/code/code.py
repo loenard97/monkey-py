@@ -16,7 +16,9 @@ class Instructions:
         for instruction in self.instructions:
             operation = MOpcode(instruction[0])
             operands_str = " ".join([f"0x{b:02x}" for b in instruction[1:]])
-            ret.append(f"{offset:04d} {operation}{' ' if operands_str else ''}{operands_str}")
+            ret.append(
+                f"{offset:04d} {operation}{' ' if operands_str else ''}{operands_str}"
+            )
             offset += len(instruction)
         return "\n".join(ret)
 
@@ -32,12 +34,28 @@ class Instructions:
 
 class MOpcode(Enum):
     OpConstant = 0x01
-    OpAdd = 0x02
+    OpPop = 0x02
+
+    OpAdd = 0x03
+    OpSub = 0x04
+    OpMul = 0x05
+    OpDiv = 0x06
+
+    OpTrue = 0x07
+    OpFalse = 0x08
 
 
 definitions = {
     "OpConstant": [2],
+    "OpPop": [],
+
     "OpAdd": [],
+    "OpSub": [],
+    "OpMul": [],
+    "OpDiv": [],
+
+    "OpTrue": [],
+    "OpFalse": [],
 }
 
 
@@ -48,6 +66,7 @@ class MDefinition:
 
     @classmethod
     def lookup(cls, op: MOpcode) -> "None | MDefinition":
+        print(op)
         try:
             return MDefinition(op.name, definitions[op.name])
         except KeyError:
