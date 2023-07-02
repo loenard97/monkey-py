@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import List
+from typing import Generator, List
 
 
 @dataclass
@@ -15,10 +15,16 @@ class Instructions:
         ret = []
         for instruction in self.instructions:
             operation = MOpcode(instruction[0])
-            operands_str = ", ".join([f"0x{b:02x}" for b in instruction[1:]])
-            ret.append(f"{offset:04d} {operation} {operands_str}")
+            operands_str = " ".join([f"0x{b:02x}" for b in instruction[1:]])
+            ret.append(f"{offset:04d} {operation}{' ' if operands_str else ''}{operands_str}")
             offset += len(instruction)
         return "\n".join(ret)
+
+    def __getitem__(self, index: int | slice) -> bytearray | List[bytearray]:
+        return self.instructions.__getitem__(index)
+
+    def __iter__(self) -> Generator[bytearray, None, None]:
+        return (ins for ins in self.instructions)
 
     def append(self, ins: bytearray):
         self.instructions.append(ins)
@@ -26,10 +32,12 @@ class Instructions:
 
 class MOpcode(Enum):
     OpConstant = 0x01
+    OpAdd = 0x02
 
 
 definitions = {
-    "OpConstant": [0, 0],
+    "OpConstant": [2],
+    "OpAdd": [],
 }
 
 
@@ -40,10 +48,10 @@ class MDefinition:
 
     @classmethod
     def lookup(cls, op: MOpcode) -> "None | MDefinition":
-        if op == MOpcode.OpConstant:
-            return MDefinition("OpConstant", [2])
-
-        return None
+        try:
+            return MDefinition(op.name, definitions[op.name])
+        except KeyError:
+            return None
 
 
 class Encoder:

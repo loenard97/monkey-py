@@ -33,6 +33,12 @@ class Compiler:
             self.compile(node.left)
             self.compile(node.right)
 
+            if node.operator == '+':
+                self.emit(MOpcode.OpAdd)
+
+            else:
+                raise TypeError("unknown operator")
+
         elif isinstance(node, MIntegerExpression):
             integer = MIntegerObject(node.value)
             self.emit(MOpcode.OpConstant, self.add_constant(integer))
@@ -56,7 +62,7 @@ class Compiler:
 
 @dataclass
 class Bytecode:
-    Instructions: Instructions
+    instructions: Instructions
     constants: List[MObject]
 
 

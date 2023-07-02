@@ -23,8 +23,6 @@ def assert_instructions(i, compiled: Instructions, expected):
 def run_test(test_input):
     for i, (key, value) in enumerate(test_input.items()):
         instructions, constants = value
-        print(instructions)
-        print(constants)
         lexer = MLexer(key)
         program = MParser(lexer).parse_program()
         compiler = Compiler()
@@ -37,7 +35,7 @@ def run_test(test_input):
 def test_integer():
     test_input = {
         "1 + 2;": [
-            [[0, MOpcode.OpConstant, 0x00, 0x00], [3, MOpcode.OpConstant, 0x00, 0x01]],
+            [[0, MOpcode.OpConstant, 0x00, 0x00], [3, MOpcode.OpConstant, 0x00, 0x01], [6, MOpcode.OpAdd]],
             [MIntegerObject(1), MIntegerObject(2)],
         ],
     }
