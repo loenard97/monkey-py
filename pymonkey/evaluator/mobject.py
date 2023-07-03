@@ -7,8 +7,8 @@ from pymonkey.parser.mast import MBlockStatement, MExpression
 
 class MObject(ABC):
     @abstractmethod
-    def __str__(self):
-        return NotImplementedError
+    def __str__(self) -> str:
+        pass
 
 
 class MValuedObject(MObject, ABC):
@@ -26,7 +26,7 @@ class MValuedObject(MObject, ABC):
 @dataclass
 class MNullObject(MObject):
     @classmethod
-    def __str__(cls):
+    def __str__(cls) -> str:
         return "None"
 
 
@@ -34,7 +34,7 @@ class MNullObject(MObject):
 class MIntegerObject(MValuedObject):
     value: int
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.value}"
 
 
@@ -42,7 +42,7 @@ class MIntegerObject(MValuedObject):
 class MBooleanObject(MValuedObject):
     value: bool
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.value}".lower()
 
 
@@ -50,7 +50,7 @@ class MBooleanObject(MValuedObject):
 class MStringObject(MValuedObject):
     value: str
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.value}"
 
 
@@ -58,7 +58,7 @@ class MStringObject(MValuedObject):
 class MReturnValueObject(MObject):
     value: MObject
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.value}"
 
 
@@ -66,7 +66,7 @@ class MReturnValueObject(MObject):
 class MErrorObject(MObject):
     message: str
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"ERROR: {self.message}"
 
 
@@ -76,7 +76,7 @@ class MFunctionObject(MObject):
     body: MBlockStatement
     env: "MEnvironment"
 
-    def __str__(self):
+    def __str__(self) -> str:
         params = ", ".join([str(p) for p in self.parameters])
         return f"fn ({params}) {{ {self.body} }}"
 
@@ -86,10 +86,10 @@ class MEnvironment:
     store: dict
     outer: Union["MEnvironment", None]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Environment <{self.store}, {self.outer}>"
 
-    def set(self, name: str, val: MObject):
+    def set(self, name: str, val: MObject) -> MObject:
         self.store[name] = val
         return val
 
@@ -106,7 +106,7 @@ class MEnvironment:
 class MBuiltinFunction(MObject):
     fn: Callable
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.fn.__name__}"
 
 
@@ -114,7 +114,7 @@ class MBuiltinFunction(MObject):
 class MArrayObject(MObject):
     value: List[MObject]
 
-    def __str__(self):
+    def __str__(self) -> str:
         vals = ", ".join([str(e) for e in self.value])
         return f"[{vals}]"
 
@@ -123,6 +123,6 @@ class MArrayObject(MObject):
 class MHashMapObject(MObject):
     value: Dict[MValuedObject, MObject]
 
-    def __str__(self):
+    def __str__(self) -> str:
         vals = ", ".join([f"{key}: {value}" for key, value in self.value.items()])
         return f"{{{vals}}}"

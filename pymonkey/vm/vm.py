@@ -2,9 +2,13 @@ from dataclasses import dataclass
 from typing import List
 
 from pymonkey.code.code import Instructions, MOpcode
-from pymonkey.evaluator.mobject import MBooleanObject, MIntegerObject, MNullObject, MObject
-
-STACK_SIZE = 2048
+from pymonkey.compiler.compiler import Bytecode
+from pymonkey.evaluator.mobject import (
+    MBooleanObject,
+    MIntegerObject,
+    MNullObject,
+    MObject,
+)
 
 
 @dataclass
@@ -15,7 +19,7 @@ class VM:
     stack_pointer: int
     last_pop: MObject
 
-    def __init__(self, bytecode) -> None:
+    def __init__(self, bytecode: Bytecode) -> None:
         self.instructions = bytecode.instructions
         self.constants = bytecode.constants
         self.stack = []
@@ -36,7 +40,7 @@ class VM:
         self.last_pop = self.stack.pop()
         return self.last_pop
 
-    def run(self):
+    def run(self) -> None:
         for ins in self.instructions:
             op = MOpcode(ins[0])
 
@@ -44,7 +48,12 @@ class VM:
                 const_index = int.from_bytes(ins[1:], byteorder="big", signed=False)
                 self.stack_push(self.constants[const_index])
 
-            elif op == MOpcode.OpAdd or op == MOpcode.OpSub or op == MOpcode.OpMul or op == MOpcode.OpDiv:
+            elif (
+                op == MOpcode.OpAdd
+                or op == MOpcode.OpSub
+                or op == MOpcode.OpMul
+                or op == MOpcode.OpDiv
+            ):
                 self.execute_binary_operation(op)
 
             elif op == MOpcode.OpPop:
@@ -62,11 +71,9 @@ class VM:
     def execute_binary_operation(self, op: MOpcode) -> None:
         right = self.stack_pop()
         left = self.stack_pop()
-        if not (isinstance(right, MIntegerObject) and isinstance(
-            left, MIntegerObject
-        )):
+        if not (isinstance(right, MIntegerObject) and isinstance(left, MIntegerObject)):
             raise TypeError("OpAdd operands not Integers")
-      
+
         result = 0
         if op == MOpcode.OpAdd:
             result = left.value + right.value

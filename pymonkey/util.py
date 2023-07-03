@@ -1,8 +1,10 @@
+from typing import Any, Callable, cast
+
 FLOG_DEPTH = 0
 
 
-def flog(func):
-    def inner(*args, **kwargs):
+def flog(func: Callable) -> Callable:
+    def inner(*args: Any, **kwargs: Any) -> Any:
         global FLOG_DEPTH
         tab = " │  " * FLOG_DEPTH
         FLOG_DEPTH += 1
@@ -24,10 +26,14 @@ def flog(func):
     return inner
 
 
+class MetaClass:
+    pass
+
+
 class Logger(type):
     @staticmethod
-    def _decorator(func):
-        def wrapper(*args, **kwargs):
+    def _decorator(func: Callable) -> Callable:
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             global FLOG_DEPTH
             tab = " │  " * FLOG_DEPTH
             FLOG_DEPTH += 1
@@ -48,23 +54,10 @@ class Logger(type):
 
         return wrapper
 
-    def __new__(mcs, name, bases, attrs):
+    def __new__(cls: type[type], name: str, bases: tuple, attrs: dict) -> "Logger":
         for key in attrs.keys():
             if callable(attrs[key]):
                 func = attrs[key]
                 attrs[key] = Logger._decorator(func)
 
-        return super().__new__(mcs, name, bases, attrs)
-
-
-class A(metaclass=Logger):
-    def __init__(self):
-        self.some_val = "some_val"
-
-    def method(self, a):
-        print(a, self.some_val)
-
-
-if __name__ == "__main__":
-    a = A()
-    a.method(3)
+        return cast(Logger, type.__new__(cls, name, bases, attrs))

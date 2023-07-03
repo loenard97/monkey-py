@@ -1,30 +1,37 @@
-from typing import List
-
 from pymonkey.parser.mparser import MLexer, MParser
 
 
-def test_let():
-    input = [
+def run_parser(test: list[str]) -> None:
+    for i, t in enumerate(test):
+        lexer = MLexer(t)
+        parser = MParser(lexer)
+        program = parser.parse_program()
+
+        assert str(program) == t, f"Test {i} failed: {t}"
+
+
+def test_let() -> None:
+    test_input = [
         "let x = 3;",
         "let y = true;",
         "let foobar = y;",
     ]
 
-    run_parser(input)
+    run_parser(test_input)
 
 
-def test_return():
-    input = [
+def test_return() -> None:
+    test_input = [
         "return 1;",
         "return true;",
         "return foobar;",
     ]
 
-    run_parser(input)
+    run_parser(test_input)
 
 
-def test_prefix():
-    input = [
+def test_prefix() -> None:
+    test_input = [
         "!5;",
         "-15;",
         "!foobar;",
@@ -33,11 +40,11 @@ def test_prefix():
         "!false;",
     ]
 
-    run_parser(input)
+    run_parser(test_input)
 
 
-def test_infix():
-    input = [
+def test_infix() -> None:
+    test_input = [
         "5 + 5;",
         "5 - 5;",
         "5 * 5;",
@@ -48,11 +55,11 @@ def test_infix():
         "5 != 5;",
     ]
 
-    run_parser(input)
+    run_parser(test_input)
 
 
-def test_math():
-    input = [
+def test_math() -> None:
+    test_input = [
         "-a * b;",
         "!-a;",
         "a + b + c;",
@@ -80,34 +87,34 @@ def test_math():
         # "add(a + b + c * d / f + g);",
     ]
 
-    run_parser(input)
+    run_parser(test_input)
 
 
-def test_if():
-    input = [
+def test_if() -> None:
+    test_input = [
         "if (true) { return 1; };",
         "if (false) { return 1; } else { return 0; };",
     ]
 
-    run_parser(input)
+    run_parser(test_input)
 
 
-def test_function():
-    input = [
+def test_function() -> None:
+    test_input = [
         "fn(x, y) { x + y; };",
         "add(x, y);",
     ]
 
-    run_parser(input)
+    run_parser(test_input)
 
 
-def test_string():
+def test_string() -> None:
     inp = ['"hello world";']
 
     run_parser(inp)
 
 
-def test_array():
+def test_array() -> None:
     inp = [
         "[1, true];",
         "[];",
@@ -116,25 +123,16 @@ def test_array():
     run_parser(inp)
 
 
-def test_index():
+def test_index() -> None:
     inp = ["arr[1 + 1];"]
 
     run_parser(inp)
 
 
-def test_hashmap():
-    input_ = [
+def test_hashmap() -> None:
+    test_input = [
         '{"one": 1, "two": 2, "three": 3};',
         "{};",
     ]
 
-    run_parser(input_)
-
-
-def run_parser(test: List[str]):
-    for i, t in enumerate(test):
-        lexer = MLexer(t)
-        parser = MParser(lexer)
-        program = parser.parse_program()
-
-        assert str(program) == t, f"Test {i} failed: {t}"
+    run_parser(test_input)

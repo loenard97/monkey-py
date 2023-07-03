@@ -6,7 +6,7 @@ from pymonkey.mrepl import repl
 from pymonkey.parser.mparser import MParser, UnknownTokenException
 
 
-def print_parser_errors(inp: str, parser: MParser):
+def print_parser_errors(inp: str, parser: MParser) -> None:
     inp_lines = inp.split("\n")
 
     for err in parser.errors:
@@ -22,7 +22,7 @@ def print_parser_errors(inp: str, parser: MParser):
             print(f"   | {'-' * (err.token.position.pos - 1)}^\n")
 
 
-def print_lexer_errors(inp: str, lexer: MLexer):
+def print_lexer_errors(inp: str, lexer: MLexer) -> None:
     inp_lines = inp.split("\n")
 
     for err in lexer.errors:
@@ -38,7 +38,7 @@ def print_lexer_errors(inp: str, lexer: MLexer):
             print(f"   | {'-' * (err.token.position.pos - 1)}^\n")
 
 
-def main():
+def main() -> None:
     if len(sys.argv) == 1:
         repl()
 

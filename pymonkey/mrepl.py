@@ -5,7 +5,7 @@ from pymonkey.lexer.mlexer import MLexer
 from pymonkey.parser.mparser import MParser
 
 
-def repl():
+def repl() -> None:
     print("Monkey REPL: (type exit() to close REPL)")
 
     for line in sys.stdin:

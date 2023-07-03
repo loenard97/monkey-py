@@ -1,11 +1,11 @@
 from pymonkey.compiler.compiler import Compiler
-from pymonkey.evaluator.mobject import MBooleanObject, MIntegerObject
+from pymonkey.evaluator.mobject import MBooleanObject, MIntegerObject, MObject
 from pymonkey.lexer.mlexer import MLexer
 from pymonkey.parser.mparser import MParser
 from pymonkey.vm.vm import VM
 
 
-def run_test(test_input):
+def run_test(test_input: dict[str, MObject]) -> None:
     for i, (key, value) in enumerate(test_input.items()):
         lexer = MLexer(key)
         program = MParser(lexer).parse_program()
@@ -19,8 +19,8 @@ def run_test(test_input):
         assert vm.last_pop == value, f"Test {i} failed"
 
 
-def test_integer():
-    test_input = {
+def test_integer() -> None:
+    test_input: dict[str, MObject] = {
         "1;": MIntegerObject(1),
         "2;": MIntegerObject(2),
         "1 + 2;": MIntegerObject(3),
@@ -32,8 +32,8 @@ def test_integer():
     run_test(test_input)
 
 
-def test_boolean():
-    test_input = {
+def test_boolean() -> None:
+    test_input: dict[str, MObject] = {
         "true;": MBooleanObject(True),
         "false;": MBooleanObject(False),
     }

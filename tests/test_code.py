@@ -1,16 +1,14 @@
-from typing import Dict
-
 from pymonkey.code.code import Encoder, Instructions, MOpcode
 
 
-def run_test(test_input: Dict):
+def run_test(test_input: dict) -> None:
     for i, (key, value) in enumerate(test_input.items()):
         assert value == Encoder.make(
             key[0], *key[1:]
         ), f"Test {i} failed: {value} != {Encoder.make(key)}"
 
 
-def assert_instructions_string(test_input: Dict):
+def assert_instructions_string(test_input: dict) -> None:
     for i, (key, value) in enumerate(test_input.items()):
         instructions = Instructions([])
         for k in key:
@@ -20,7 +18,7 @@ def assert_instructions_string(test_input: Dict):
         assert str(instructions) == value, f"Test {i} failed"
 
 
-def test_make():
+def test_make() -> None:
     test_input = {
         (MOpcode.OpConstant, 0): b"\x01\x00\x00",
         (MOpcode.OpConstant, 65534): b"\x01\xFF\xFE",
@@ -30,7 +28,7 @@ def test_make():
     run_test(test_input)
 
 
-def test_instructions_string():
+def test_instructions_string() -> None:
     test_input = {
         (
             (MOpcode.OpConstant, 0),

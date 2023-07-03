@@ -1,5 +1,3 @@
-from typing import List
-
 from pymonkey.evaluator.mbuiltins import Builtins
 from pymonkey.evaluator.mobject import (
     MArrayObject,
@@ -44,7 +42,7 @@ class MEvaluator:
         self.top_node = top_node
         self.top_env = MEnvironment(store={}, outer=None)
 
-    def evaluate(self):
+    def evaluate(self) -> MObject:
         return MEvaluator.eval_node(self.top_node, self.top_env)
 
     @classmethod
@@ -313,8 +311,8 @@ class MEvaluator:
 
     @classmethod
     def eval_expressions(
-        cls, exps: List[MExpression], env: MEnvironment
-    ) -> List[MObject]:
+        cls, exps: list[MExpression], env: MEnvironment
+    ) -> list[MObject]:
         result = []
 
         for e in exps:
@@ -357,7 +355,7 @@ class MEvaluator:
             return MNullObject()
 
     @classmethod
-    def apply_function(cls, fn: MFunctionObject, args: List[MObject]) -> MObject:
+    def apply_function(cls, fn: MFunctionObject, args: list[MObject]) -> MObject:
         extended_env = MEvaluator.extend_function_env(fn, args)
         evaluated = MEvaluator.eval_node(fn.body, extended_env)
 
@@ -366,12 +364,12 @@ class MEvaluator:
         return evaluated
 
     @classmethod
-    def apply_builtin(cls, fn: MBuiltinFunction, args: List[MObject]) -> MObject:
+    def apply_builtin(cls, fn: MBuiltinFunction, args: list[MObject]) -> MObject:
         return fn.fn(args)
 
     @classmethod
     def extend_function_env(
-        cls, fn: MFunctionObject, args: List[MObject]
+        cls, fn: MFunctionObject, args: list[MObject]
     ) -> MEnvironment:
         env = MEnvironment(store={}, outer=fn.env)
 

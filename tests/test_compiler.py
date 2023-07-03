@@ -5,7 +5,7 @@ from pymonkey.lexer.mlexer import MLexer
 from pymonkey.parser.mparser import MParser
 
 
-def assert_instructions(i, compiled: Instructions, expected):
+def assert_instructions(i: int, compiled: Instructions, expected: list) -> None:
     offset = 0
     assert len(compiled.instructions) == len(expected)
     for ins, exp in zip(compiled.instructions, expected):
@@ -21,7 +21,7 @@ def assert_instructions(i, compiled: Instructions, expected):
         offset += len(operands) + 1
 
 
-def run_test(test_input):
+def run_test(test_input: dict[str, list]) -> None:
     for i, (key, value) in enumerate(test_input.items()):
         instructions, constants = value
         lexer = MLexer(key)
@@ -33,7 +33,7 @@ def run_test(test_input):
         assert compiler.constants == constants, f"Test {i} failed: wrong constants"
 
 
-def test_integer():
+def test_integer() -> None:
     test_input = {
         "1 + 2;": [
             [

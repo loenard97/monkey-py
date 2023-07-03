@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import List
 
 from pymonkey.lexer.mtoken import KEYWORDS, MToken, MTokenPosition, MTokenType
 
@@ -11,14 +10,14 @@ class MLexerError:
 
 
 class MLexer:
-    def __init__(self, input, file_name="test"):
-        self._input = input
+    def __init__(self, code: str, file_name: str = "test") -> None:
+        self._input = code
         self._position = 0
         self._read_position = 0
         self._ch = ""
         self._token_position = MTokenPosition(file_name, 0, 0)
 
-        self.errors: List[MLexerError] = []
+        self.errors: list[MLexerError] = []
 
         self._n_braces = 0
         self._n_paren = 0
@@ -29,7 +28,7 @@ class MLexer:
 
         self._read_ch()
 
-    def __iter__(self):
+    def __iter__(self) -> "MLexer":
         return self
 
     def __next__(self) -> MToken:
@@ -42,7 +41,7 @@ class MLexer:
                 self._token_position.pos = 0
             self._read_ch()
 
-        token = MToken()
+        token: MToken
         match self._ch:
             case "=":
                 if self._next_ch() == "=":
@@ -158,7 +157,7 @@ class MLexer:
                 break
         return self._input[pos : self._position]
 
-    def _read_ch(self):
+    def _read_ch(self) -> None:
         """
         Advance Lexer by one character
         """

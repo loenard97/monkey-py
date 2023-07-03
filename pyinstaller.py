@@ -1,7 +1,7 @@
 import PyInstaller.__main__
 
 
-def build():
+def build() -> None:
     PyInstaller.__main__.run(
         [
             "main.py",

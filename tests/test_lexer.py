@@ -1,11 +1,17 @@
-from typing import List
-
 from pymonkey.lexer.mlexer import MLexer
 from pymonkey.lexer.mtoken import MToken, MTokenType
 
 
-def test_token():
-    input = "=+(){},;-!/*<>"
+def run_lexer(test_input: str, tokens: list[MToken]) -> None:
+    lexer = MLexer(test_input, file_name="test")
+
+    for lex_token, token in zip(lexer, tokens):
+        print(f"{lex_token=} {token=}")
+        assert lex_token.type == token.type and lex_token.literal == token.literal
+
+
+def test_token() -> None:
+    test_input = "=+(){},;-!/*<>"
     tokens = [
         MToken(MTokenType.Assign, "="),
         MToken(MTokenType.Plus, "+"),
@@ -23,11 +29,11 @@ def test_token():
         MToken(MTokenType.Greater, ">"),
     ]
 
-    run_lexer(input, tokens)
+    run_lexer(test_input, tokens)
 
 
-def test_composed_token():
-    input = "0 == 0; 0 != 1;"
+def test_composed_token() -> None:
+    test_input = "0 == 0; 0 != 1;"
     tokens = [
         MToken(MTokenType.Number, "0"),
         MToken(MTokenType.Equal, "=="),
@@ -39,22 +45,22 @@ def test_composed_token():
         MToken(MTokenType.Semicolon, ";"),
     ]
 
-    run_lexer(input, tokens)
+    run_lexer(test_input, tokens)
 
 
-def test_string():
-    inp = '"foobar"; "foo bar"'
+def test_string() -> None:
+    test_input = '"foobar"; "foo bar"'
     tokens = [
         MToken(MTokenType.String, "foobar"),
         MToken(MTokenType.Semicolon, ";"),
         MToken(MTokenType.String, "foo bar"),
     ]
 
-    run_lexer(inp, tokens)
+    run_lexer(test_input, tokens)
 
 
-def test_array():
-    inp = '[1, "a", true];'
+def test_array() -> None:
+    test_input = '[1, "a", true];'
     tokens = [
         MToken(MTokenType.LBracket, "["),
         MToken(MTokenType.Number, "1"),
@@ -66,11 +72,11 @@ def test_array():
         MToken(MTokenType.Semicolon, ";"),
     ]
 
-    run_lexer(inp, tokens)
+    run_lexer(test_input, tokens)
 
 
-def test_hashmap():
-    input_ = '{"foo": "bar"};'
+def test_hashmap() -> None:
+    test_input = '{"foo": "bar"};'
     tokens = [
         MToken(MTokenType.LBrace, "{"),
         MToken(MTokenType.String, "foo"),
@@ -80,12 +86,4 @@ def test_hashmap():
         MToken(MTokenType.Semicolon, ";"),
     ]
 
-    run_lexer(input_, tokens)
-
-
-def run_lexer(input: str, tokens: List[MToken]):
-    lexer = MLexer(input, file_name="test")
-
-    for lex_token, token in zip(lexer, tokens):
-        print(f"{lex_token=} {token=}")
-        assert lex_token.type == token.type and lex_token.literal == token.literal
+    run_lexer(test_input, tokens)

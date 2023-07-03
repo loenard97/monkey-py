@@ -11,13 +11,13 @@ from pymonkey.evaluator.mobject import (
 
 
 class Builtins:
-    def __init__(self):
+    def __init__(self) -> None:
         self.fns = {
             "len": MBuiltinFunction(self.len),
             "puts": MBuiltinFunction(self.puts),
         }
 
-    def len(self, args: List[MObject]):
+    def len(self, args: List[MObject]) -> MErrorObject | MIntegerObject:
         if len(args) != 1:
             return MErrorObject("len needs exactly one argument")
 
@@ -26,5 +26,5 @@ class Builtins:
 
         return MErrorObject("len unknown expression")
 
-    def puts(self, args: List[MObject]):
+    def puts(self, args: List[MObject]) -> None:
         print(*args)

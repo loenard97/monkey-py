@@ -9,6 +9,7 @@ exclude = ["venv"]
 check_untyped_defs = true
 ignore_missing_imports = true
 disallow_any_explicit = false
+disallow_untyped_defs = true
 implicit_optional = true
 strict_optional = true
 warn_redundant_casts = true

@@ -43,7 +43,7 @@ class Precedence(Enum):
     Index = auto()
 
     @classmethod
-    def from_token(cls, token: MToken):
+    def from_token(cls, token: MToken) -> "Precedence":
         if token.type == MTokenType.Equal or token.type == MTokenType.NotEqual:
             return cls.Equals
         if token.type == MTokenType.Lesser or token.type == MTokenType.Greater:
@@ -64,7 +64,7 @@ class ParserError:
     token: MToken
     msg: str
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Parser Error: {self.msg} @ {self.token}"
 
 
@@ -78,10 +78,10 @@ class MParser:
         self.next_token()
         self.next_token()
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Parser <{self.cur_token}>"
 
-    def _record_error(self, msg: str):
+    def _record_error(self, msg: str) -> None:
         self.errors.append(ParserError(self.cur_token, msg))
 
     def prefix_parse_fn(self, token: MToken) -> Callable:
@@ -110,7 +110,9 @@ class MParser:
         self._record_error("unknown prefix")
         raise UnknownTokenException()
 
-    def infix_parse_fn(self, token: MToken):
+    def infix_parse_fn(
+        self, token: MToken
+    ) -> Callable[[MExpression], MExpression] | None:
         match token.type, token.literal:
             case (
                 MTokenType.Plus
@@ -134,7 +136,7 @@ class MParser:
             case _:
                 return None
 
-    def next_token(self):
+    def next_token(self) -> None:
         self.cur_token = self.peek_token
         try:
             self.peek_token = next(self.lexer)

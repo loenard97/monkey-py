@@ -1,5 +1,3 @@
-from typing import Dict
-
 from pymonkey.evaluator.mevaluator import MEvaluator
 from pymonkey.evaluator.mobject import (
     MArrayObject,
@@ -12,7 +10,7 @@ from pymonkey.evaluator.mobject import (
 from pymonkey.parser.mparser import MLexer, MParser
 
 
-def evaluate_test(test_dict: Dict[str, MObject]):
+def evaluate_test(test_dict: dict[str, MObject]) -> None:
     for i, (in_test, out_test) in enumerate(test_dict.items()):
         try:
             lexer = MLexer(in_test)
@@ -24,8 +22,8 @@ def evaluate_test(test_dict: Dict[str, MObject]):
             assert evaluation == out_test, f"Test {i} failed: {in_test} != {out_test}"
 
 
-def test_int():
-    tests: Dict[str, MObject] = {
+def test_int() -> None:
+    tests: dict[str, MObject] = {
         "5;": MIntegerObject(5),
         "10;": MIntegerObject(10),
         "-5;": MIntegerObject(-5),
@@ -46,8 +44,8 @@ def test_int():
     evaluate_test(tests)
 
 
-def test_bool():
-    tests: Dict[str, MObject] = {
+def test_bool() -> None:
+    tests: dict[str, MObject] = {
         "true;": MBooleanObject(True),
         "false;": MBooleanObject(False),
         "1 < 2;": MBooleanObject(True),
@@ -72,8 +70,8 @@ def test_bool():
     evaluate_test(tests)
 
 
-def test_bang():
-    tests: Dict[str, MObject] = {
+def test_bang() -> None:
+    tests: dict[str, MObject] = {
         "!true;": MBooleanObject(False),
         "!false;": MBooleanObject(True),
         "!5;": MBooleanObject(False),
@@ -85,8 +83,8 @@ def test_bang():
     evaluate_test(tests)
 
 
-def test_if():
-    tests: Dict[str, MObject] = {
+def test_if() -> None:
+    tests: dict[str, MObject] = {
         "if (true) { 10 };": MIntegerObject(10),
         "if (false) { 10 };": MNullObject(),
         "if (1) { 10 };": MIntegerObject(10),
@@ -99,8 +97,8 @@ def test_if():
     evaluate_test(tests)
 
 
-def test_return():
-    tests: Dict[str, MObject] = {
+def test_return() -> None:
+    tests: dict[str, MObject] = {
         "return 10;": MIntegerObject(10),
         "return 10; 9;": MIntegerObject(10),
         "return 2 * 5; 9;": MIntegerObject(10),
@@ -111,8 +109,8 @@ def test_return():
     evaluate_test(tests)
 
 
-def test_let():
-    tests: Dict[str, MObject] = {
+def test_let() -> None:
+    tests: dict[str, MObject] = {
         "let a = 5; a;": MIntegerObject(5),
         "let a = 5 * 5; a;": MIntegerObject(25),
         "let a = 5; let b = a; b;": MIntegerObject(5),
@@ -122,8 +120,8 @@ def test_let():
     evaluate_test(tests)
 
 
-def test_fn():
-    tests: Dict[str, MObject] = {
+def test_fn() -> None:
+    tests: dict[str, MObject] = {
         "let identity = fn(x) { x; }; identity(5);": MIntegerObject(5),
         "let identity = fn(x) { return x; }; identity(5);": MIntegerObject(5),
         "let double = fn(x) { x * 2; }; double(5);": MIntegerObject(10),
@@ -135,8 +133,8 @@ def test_fn():
     evaluate_test(tests)
 
 
-def test_string():
-    tests: Dict[str, MObject] = {
+def test_string() -> None:
+    tests: dict[str, MObject] = {
         '"Hello World!";': MStringObject("Hello World!"),
         '"Hello" + " " + "World" + "!"': MStringObject("Hello World!"),
     }
@@ -144,16 +142,16 @@ def test_string():
     evaluate_test(tests)
 
 
-def test_builtin():
-    tests: Dict[str, MObject] = {
+def test_builtin() -> None:
+    tests: dict[str, MObject] = {
         'len("Hello World!")': MIntegerObject(12),
     }
 
     evaluate_test(tests)
 
 
-def test_env():
-    tests: Dict[str, MObject] = {
+def test_env() -> None:
+    tests: dict[str, MObject] = {
         "let first = 10;"
         "let second = 10;"
         "let third = 10;"
@@ -164,8 +162,8 @@ def test_env():
     evaluate_test(tests)
 
 
-def test_array():
-    tests: Dict[str, MObject] = {
+def test_array() -> None:
+    tests: dict[str, MObject] = {
         "[1, 2 * 2, 3 + 3];": MArrayObject(
             [MIntegerObject(1), MIntegerObject(4), MIntegerObject(6)]
         ),
@@ -180,8 +178,8 @@ def test_array():
     evaluate_test(tests)
 
 
-def test_hashmap():
-    tests: Dict[str, MObject] = {
+def test_hashmap() -> None:
+    tests: dict[str, MObject] = {
         '{"one": 1}["one"]': MIntegerObject(1),
         'let hm = {"one": 1}; hm["one"];': MIntegerObject(1),
         'let hm = {}; hm["one"];': MNullObject(),

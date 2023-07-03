@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Generator, List
+from typing import Generator
 
 
 @dataclass
 class Instructions:
-    instructions: List[bytearray]
+    instructions: list[bytearray]
 
     def __len__(self) -> int:
         return self.instructions.__len__()
@@ -22,13 +22,13 @@ class Instructions:
             offset += len(instruction)
         return "\n".join(ret)
 
-    def __getitem__(self, index: int | slice) -> bytearray | List[bytearray]:
+    def __getitem__(self, index: int | slice) -> bytearray | list[bytearray]:
         return self.instructions.__getitem__(index)
 
     def __iter__(self) -> Generator[bytearray, None, None]:
         return (ins for ins in self.instructions)
 
-    def append(self, ins: bytearray):
+    def append(self, ins: bytearray) -> None:
         self.instructions.append(ins)
 
 
@@ -45,15 +45,13 @@ class MOpcode(Enum):
     OpFalse = 0x08
 
 
-definitions = {
+definitions: dict[str, list[int]] = {
     "OpConstant": [2],
     "OpPop": [],
-
     "OpAdd": [],
     "OpSub": [],
     "OpMul": [],
     "OpDiv": [],
-
     "OpTrue": [],
     "OpFalse": [],
 }
@@ -62,7 +60,7 @@ definitions = {
 @dataclass
 class MDefinition:
     name: str
-    operand_widths: List[int]
+    operand_widths: list[int]
 
     @classmethod
     def lookup(cls, op: MOpcode) -> "None | MDefinition":
@@ -75,7 +73,7 @@ class MDefinition:
 
 class Encoder:
     @classmethod
-    def make(cls, op: MOpcode, *operands) -> bytearray:
+    def make(cls, op: MOpcode, *operands: int) -> bytearray:
         definition = MDefinition.lookup(op)
         if definition is None:
             return bytearray()

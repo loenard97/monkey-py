@@ -9,19 +9,19 @@ class MNode(ABC):
     token: MToken = NotImplemented
 
     @abstractmethod
-    def __str__(self):
-        raise NotImplementedError
+    def __str__(self) -> str:
+        pass
 
 
-class MStatement(MNode):
+class MStatement(MNode, ABC):
     pass
 
 
-class MExpression(MNode):
+class MExpression(MNode, ABC):
     pass
 
 
-class MValuedExpression(MExpression):
+class MValuedExpression(MExpression, ABC):
     """
     Valued Expression that can be hashed and therefore used as dict keys.
     Child classes need to use @dataclass(eq=False, frozen=True), otherwise dataclass overwrites __hash__ to None.
@@ -42,7 +42,7 @@ class MProgram(MNode):
     statements: List[MStatement]
     token = MToken()
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "\n".join(str(s) for s in self.statements)
 
 
@@ -51,7 +51,7 @@ class MIdentifier(MExpression):
     value: str
     token: MToken
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.value}"
 
 
@@ -61,7 +61,7 @@ class MLetStatement(MStatement):
     value: MExpression
     token: MToken
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"let {self.name} = {self.value};"
 
 
@@ -70,7 +70,7 @@ class MReturnStatement(MStatement):
     value: MExpression
     token: MToken
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"return {self.value};"
 
 
@@ -79,7 +79,7 @@ class MExpressionStatement(MStatement):
     expression: MExpression
     token: MToken
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.expression.__str__() + ";"
 
 
@@ -88,7 +88,7 @@ class MBlockStatement(MStatement):
     statements: List[MStatement]
     token: MToken
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "\n".join(str(s) for s in self.statements)
 
 
@@ -97,7 +97,7 @@ class MBooleanExpression(MValuedExpression):
     value: bool
     token: MToken
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.value}".lower()
 
 
@@ -106,7 +106,7 @@ class MIntegerExpression(MValuedExpression):
     value: int
     token: MToken
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.value}"
 
 
@@ -115,7 +115,7 @@ class MStringExpression(MValuedExpression):
     value: str
     token: MToken
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'"{self.value}"'
 
 
@@ -124,7 +124,7 @@ class MArrayExpression(MExpression):
     value: List[MExpression]
     token: MToken
 
-    def __str__(self):
+    def __str__(self) -> str:
         args = ", ".join([str(e) for e in self.value])
         return f"[{args}]"
 
@@ -135,7 +135,7 @@ class MPrefixExpression(MExpression):
     right: MExpression
     token: MToken
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.operator}{self.right}"
 
 
@@ -146,7 +146,7 @@ class MInfixExpression(MExpression):
     right: MExpression
     token: MToken
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.left} {self.operator} {self.right}"
 
 
@@ -157,7 +157,7 @@ class MIfExpression(MExpression):
     alternative: MBlockStatement | None
     token: MToken
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.alternative is None:
             return f"if ({self.condition}) {{ {self.consequence} }}"
         return (
@@ -172,7 +172,7 @@ class MFunctionExpression(MExpression):
     body: MBlockStatement
     token: MToken
 
-    def __str__(self):
+    def __str__(self) -> str:
         params = ", ".join([str(p) for p in self.parameters])
         return f"{self.token.literal}({params}) {{ {self.body} }}"
 
@@ -183,7 +183,7 @@ class MCallExpression(MExpression):
     arguments: List[MExpression]
     token: MToken
 
-    def __str__(self):
+    def __str__(self) -> str:
         args = ", ".join([str(a) for a in self.arguments])
         return f"{self.function}({args})"
 
@@ -194,7 +194,7 @@ class MIndexExpression(MExpression):
     index: MExpression
     token: MToken
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.left}[{self.index}]"
 
 
@@ -203,6 +203,6 @@ class MHashMapExpression(MExpression):
     pairs: Dict[MValuedExpression, MExpression]
     token: MToken
 
-    def __str__(self):
+    def __str__(self) -> str:
         pairs = ", ".join([f"{key}: {value}" for key, value in self.pairs.items()])
         return f"{{{pairs}}}"

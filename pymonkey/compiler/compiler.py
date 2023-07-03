@@ -4,10 +4,10 @@ from typing import List
 from pymonkey.code.code import Encoder, Instructions, MOpcode
 from pymonkey.evaluator.mobject import MIntegerObject, MObject
 from pymonkey.parser.mast import (
+    MBooleanExpression,
     MExpressionStatement,
     MInfixExpression,
     MIntegerExpression,
-    MBooleanExpression,
     MNode,
     MProgram,
 )
@@ -22,7 +22,7 @@ class Compiler:
         self.instructions = Instructions([])
         self.constants = []
 
-    def compile(self, node: MNode):
+    def compile(self, node: MNode) -> None:
         if isinstance(node, MProgram):
             for stmt in node.statements:
                 self.compile(stmt)
@@ -63,7 +63,7 @@ class Compiler:
         else:
             raise TypeError(f"unknown MObject {node}")
 
-    def emit(self, op: MOpcode, *operands) -> int:
+    def emit(self, op: MOpcode, *operands: int) -> int:
         ins = Encoder.make(op, *operands)
         return self.add_instruction(ins)
 
@@ -88,7 +88,7 @@ class Bytecode:
 
 class Decompiler:
     @classmethod
-    def read_operands(cls):
+    def read_operands(cls) -> None:
         pass
         # for i, width in enumerate(def.operand_widths):
         #     if width == 2:
