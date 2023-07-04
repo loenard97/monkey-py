@@ -65,6 +65,21 @@ class VM:
             elif op == MOpcode.OpFalse:
                 self.stack_push(MBooleanObject(False))
 
+            elif op == MOpcode.OpGreater or op == MOpcode.OpEqual or op == MOpcode.OpNotEqual:
+                self.execute_comparison(op)
+
+            elif op == MOpcode.OpBang:
+                operand = self.stack_pop()
+                if isinstance(operand, MBooleanObject):
+                    self.stack_push(MBooleanObject(not operand.value))
+                else:
+                    self.stack_push(MBooleanObject(False))
+
+            elif op == MOpcode.OpMinus:
+                operand = self.stack_pop()
+                if isinstance(operand, MIntegerObject):
+                    self.stack_push(MIntegerObject(-operand.value))
+
             else:
                 raise TypeError("unknown op code")
 
@@ -84,3 +99,19 @@ class VM:
         elif op == MOpcode.OpDiv:
             result = left.value // right.value
         self.stack_push(MIntegerObject(result))
+
+    def execute_comparison(self, op: MOpcode) -> None:
+        right = self.stack_pop()
+        left = self.stack_pop()
+
+        if op == MOpcode.OpEqual:
+            self.stack_push(MBooleanObject(right == left))
+
+        elif op == MOpcode.OpNotEqual:
+            self.stack_push(MBooleanObject(right != left))
+
+        elif op == MOpcode.OpGreater:
+            self.stack_push(MBooleanObject(right < left))
+
+        else:
+            raise ValueError

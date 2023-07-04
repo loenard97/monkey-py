@@ -36,6 +36,19 @@ def test_boolean() -> None:
     test_input: dict[str, MObject] = {
         "true;": MBooleanObject(True),
         "false;": MBooleanObject(False),
+        "1 < 2;": MBooleanObject(True),
+        "1 > 2;": MBooleanObject(False),
+        "1 == 2;": MBooleanObject(False),
+        "1 != 2;": MBooleanObject(True),
+    }
+
+    run_test(test_input)
+
+
+def test_prefix() -> None:
+    test_input: dict[str, MObject] = {
+        "-2;": MIntegerObject(-2),
+        "!true;": MBooleanObject(False),
     }
 
     run_test(test_input)

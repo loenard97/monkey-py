@@ -22,6 +22,11 @@ class MValuedObject(MObject, ABC):
             return self.value.__eq__(other.value)
         raise TypeError("can only compare MValuedObject to same type of MValuedObject")
 
+    def __lt__(self, other: object) -> bool:
+        if isinstance(other, type(self)):
+            return self.value.__lt__(other.value)
+        raise TypeError("can only compare MValuedObject to same type of MValuedObject")
+
 
 @dataclass
 class MNullObject(MObject):

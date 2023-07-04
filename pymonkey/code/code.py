@@ -31,6 +31,9 @@ class Instructions:
     def append(self, ins: bytearray) -> None:
         self.instructions.append(ins)
 
+    def pop(self) -> bytearray:
+        return self.instructions.pop()
+
 
 class MOpcode(Enum):
     OpConstant = 0x01
@@ -44,16 +47,40 @@ class MOpcode(Enum):
     OpTrue = 0x07
     OpFalse = 0x08
 
+    OpEqual = 0x09
+    OpNotEqual = 0x0a
+    OpGreater = 0x0b
+
+    OpMinus = 0x0c
+    OpBang = 0x0d
+
+    OpJumpNotTruthy = 0x0e
+    OpJump = 0x0f
+
+    OpUndefined = 0xff
+
 
 definitions: dict[str, list[int]] = {
     "OpConstant": [2],
     "OpPop": [],
+
     "OpAdd": [],
     "OpSub": [],
     "OpMul": [],
     "OpDiv": [],
+
     "OpTrue": [],
     "OpFalse": [],
+
+    "OpEqual": [],
+    "OpNotEqual": [],
+    "OpGreater": [],
+
+    "OpMinus": [],
+    "OpBang": [],
+
+    "OpJumpNotTruthy": [2],
+    "OpJump": [2],
 }
 
 
@@ -64,7 +91,6 @@ class MDefinition:
 
     @classmethod
     def lookup(cls, op: MOpcode) -> "None | MDefinition":
-        print(op)
         try:
             return MDefinition(op.name, definitions[op.name])
         except KeyError:
