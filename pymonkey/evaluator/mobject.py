@@ -18,12 +18,12 @@ class MValuedObject(MObject, ABC):
         return (type(self), self.value).__hash__()
 
     def __eq__(self, other: object) -> bool:
-        if isinstance(other, type(self)):
+        if isinstance(other, type(self)) and hasattr(self.value, "__eq__"):
             return self.value.__eq__(other.value)
         raise TypeError("can only compare MValuedObject to same type of MValuedObject")
 
     def __lt__(self, other: object) -> bool:
-        if isinstance(other, type(self)):
+        if isinstance(other, type(self)) and hasattr(self.value, "__lt__"):
             return self.value.__lt__(other.value)
         raise TypeError("can only compare MValuedObject to same type of MValuedObject")
 

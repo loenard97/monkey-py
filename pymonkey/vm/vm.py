@@ -9,6 +9,7 @@ from pymonkey.evaluator.mobject import (
     MNullObject,
     MObject,
 )
+from pymonkey.parser.mast import MValuedExpression
 
 
 @dataclass
@@ -65,7 +66,11 @@ class VM:
             elif op == MOpcode.OpFalse:
                 self.stack_push(MBooleanObject(False))
 
-            elif op == MOpcode.OpGreater or op == MOpcode.OpEqual or op == MOpcode.OpNotEqual:
+            elif (
+                op == MOpcode.OpGreater
+                or op == MOpcode.OpEqual
+                or op == MOpcode.OpNotEqual
+            ):
                 self.execute_comparison(op)
 
             elif op == MOpcode.OpBang:
@@ -104,14 +109,19 @@ class VM:
         right = self.stack_pop()
         left = self.stack_pop()
 
-        if op == MOpcode.OpEqual:
-            self.stack_push(MBooleanObject(right == left))
+        if (
+            isinstance(right, MValuedExpression)
+            and isinstance(left, MValuedExpression)
+            and hasattr(right.value, "__lt__")
+        ):
+            if op == MOpcode.OpEqual:
+                self.stack_push(MBooleanObject(right.value == left.value))
 
-        elif op == MOpcode.OpNotEqual:
-            self.stack_push(MBooleanObject(right != left))
+            elif op == MOpcode.OpNotEqual:
+                self.stack_push(MBooleanObject(right.value != left.value))
 
-        elif op == MOpcode.OpGreater:
-            self.stack_push(MBooleanObject(right < left))
+            elif op == MOpcode.OpGreater:
+                self.stack_push(MBooleanObject(right.value < left.value))
 
         else:
             raise ValueError

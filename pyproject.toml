@@ -5,7 +5,7 @@ src_paths = ["src", "main.py"]
 [tool.black]
 
 [tool.mypy]
-exclude = ["venv"]
+exclude = ["venv", "test.py"]
 check_untyped_defs = true
 ignore_missing_imports = true
 disallow_any_explicit = false

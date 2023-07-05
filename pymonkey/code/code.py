@@ -48,37 +48,32 @@ class MOpcode(Enum):
     OpFalse = 0x08
 
     OpEqual = 0x09
-    OpNotEqual = 0x0a
-    OpGreater = 0x0b
+    OpNotEqual = 0x0A
+    OpGreater = 0x0B
 
-    OpMinus = 0x0c
-    OpBang = 0x0d
+    OpMinus = 0x0C
+    OpBang = 0x0D
 
-    OpJumpNotTruthy = 0x0e
-    OpJump = 0x0f
+    OpJumpNotTruthy = 0x0E
+    OpJump = 0x0F
 
-    OpUndefined = 0xff
+    OpUndefined = 0xFF
 
 
 definitions: dict[str, list[int]] = {
     "OpConstant": [2],
     "OpPop": [],
-
     "OpAdd": [],
     "OpSub": [],
     "OpMul": [],
     "OpDiv": [],
-
     "OpTrue": [],
     "OpFalse": [],
-
     "OpEqual": [],
     "OpNotEqual": [],
     "OpGreater": [],
-
     "OpMinus": [],
     "OpBang": [],
-
     "OpJumpNotTruthy": [2],
     "OpJump": [2],
 }

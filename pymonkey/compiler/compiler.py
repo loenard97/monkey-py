@@ -4,12 +4,15 @@ from typing import List
 from pymonkey.code.code import Encoder, Instructions, MOpcode
 from pymonkey.evaluator.mobject import MIntegerObject, MObject
 from pymonkey.parser.mast import (
+    MBlockStatement,
     MBooleanExpression,
     MExpressionStatement,
+    MIfExpression,
     MInfixExpression,
     MIntegerExpression,
     MNode,
-    MProgram, MPrefixExpression, MIfExpression, MBlockStatement,
+    MPrefixExpression,
+    MProgram,
 )
 
 
@@ -99,7 +102,7 @@ class Compiler:
 
         elif isinstance(node, MIfExpression):
             self.compile(node.condition)
-            self.emit(MOpcode.OpJumpNotTruthy, 0xff, 0xff)
+            self.emit(MOpcode.OpJumpNotTruthy, 0xFF, 0xFF)
             self.compile(node.consequence)
             if self.last_instruction.opcode == MOpcode.OpPop:
                 self.instructions.pop()
