@@ -14,6 +14,7 @@ from pymonkey.parser.mast import (
     MPrefixExpression,
     MProgram,
 )
+from pymonkey.util import flog
 
 
 @dataclass
@@ -35,6 +36,10 @@ class Compiler:
         self.last_instruction = EmittedInstruction(MOpcode.OpUndefined, 0)
         self.previous_instruction = EmittedInstruction(MOpcode.OpUndefined, 0)
 
+    def __str__(self) -> str:
+        return f"Compiler(instructions: {self.instructions.instructions}, constants: {self.constants})"
+
+    @flog
     def compile(self, node: MNode) -> None:
         if isinstance(node, MProgram):
             for stmt in node.statements:
@@ -101,12 +106,24 @@ class Compiler:
                 raise ValueError
 
         elif isinstance(node, MIfExpression):
+            print("compile if")
+            print("condition")
             self.compile(node.condition)
-            self.emit(MOpcode.OpJumpNotTruthy, 0xFF, 0xFF)
+            print("jump not true")
+            jump_not_truthy_pos = self.emit(MOpcode.OpJumpNotTruthy, 65535)
+            print("consequence")
             self.compile(node.consequence)
             if self.last_instruction.opcode == MOpcode.OpPop:
                 self.instructions.pop()
                 self.last_instruction = self.previous_instruction
+
+            after_consequence_pos = len(self.instructions)
+
+            print("jump not truthy", self.instructions[jump_not_truthy_pos])
+
+            self.instructions.instructions[jump_not_truthy_pos] = Encoder.make(MOpcode.OpJumpNotTruthy, after_consequence_pos)
+
+            print("jump not true changed to", self.instructions[jump_not_truthy_pos])
 
         elif isinstance(node, MBlockStatement):
             for stmt in node.statements:
@@ -115,18 +132,21 @@ class Compiler:
         else:
             raise TypeError(f"unknown MObject {node}")
 
+    @flog
     def emit(self, op: MOpcode, *operands: int) -> int:
         ins = Encoder.make(op, *operands)
         pos = self.add_instruction(ins)
         self.previous_instruction = self.last_instruction
         self.last_instruction = EmittedInstruction(op, pos)
-        return self.add_instruction(ins)
+        return pos
 
+    @flog
     def add_instruction(self, ins: bytearray) -> int:
         pos_new_ins = len(self.instructions.instructions)
         self.instructions.append(ins)
         return pos_new_ins
 
+    @flog
     def add_constant(self, obj: MObject) -> int:
         self.constants.append(obj)
         return len(self.constants) - 1

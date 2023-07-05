@@ -8,8 +8,10 @@ from pymonkey.evaluator.mobject import (
     MIntegerObject,
     MNullObject,
     MObject,
+    MValuedObject,
 )
 from pymonkey.parser.mast import MValuedExpression
+from pymonkey.util import flog
 
 
 @dataclass
@@ -41,6 +43,7 @@ class VM:
         self.last_pop = self.stack.pop()
         return self.last_pop
 
+    @flog
     def run(self) -> None:
         for ins in self.instructions:
             op = MOpcode(ins[0])
@@ -109,9 +112,15 @@ class VM:
         right = self.stack_pop()
         left = self.stack_pop()
 
+        print(type(right), right)
+        print(type(left), left)
+        print(isinstance(right, MValuedObject))
+        print(isinstance(left, MValuedObject))
+        print(hasattr(right, "__lt__"))
+
         if (
-            isinstance(right, MValuedExpression)
-            and isinstance(left, MValuedExpression)
+            isinstance(right, MValuedObject)
+            and isinstance(left, MValuedObject)
             and hasattr(right.value, "__lt__")
         ):
             if op == MOpcode.OpEqual:
