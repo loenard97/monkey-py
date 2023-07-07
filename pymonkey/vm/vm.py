@@ -10,7 +10,6 @@ from pymonkey.evaluator.mobject import (
     MObject,
     MValuedObject,
 )
-from pymonkey.parser.mast import MValuedExpression
 from pymonkey.util import flog
 
 
@@ -45,7 +44,11 @@ class VM:
 
     @flog
     def run(self) -> None:
-        for ins in self.instructions:
+        ip = 0
+        while ip < len(self.instructions):
+            ins = self.instructions[ip]
+            if isinstance(ins, list):
+                return
             op = MOpcode(ins[0])
 
             if op == MOpcode.OpConstant:
@@ -88,8 +91,20 @@ class VM:
                 if isinstance(operand, MIntegerObject):
                     self.stack_push(MIntegerObject(-operand.value))
 
+            elif op == MOpcode.OpJump:
+                pos = int.from_bytes(ins[1:], byteorder="big", signed=False)
+                ip = pos - 1
+
+            elif op == MOpcode.OpJumpNotTruthy:
+                pos = int.from_bytes(ins[1:], byteorder="big", signed=False)
+                condition = self.stack_pop()
+                if isinstance(condition, MBooleanObject) and not condition.value:
+                    ip = pos - 1
+
             else:
                 raise TypeError("unknown op code")
+
+            ip += 1
 
     def execute_binary_operation(self, op: MOpcode) -> None:
         right = self.stack_pop()

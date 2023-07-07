@@ -37,7 +37,12 @@ class Compiler:
         self.previous_instruction = EmittedInstruction(MOpcode.OpUndefined, 0)
 
     def __str__(self) -> str:
-        return f"Compiler(instructions: {self.instructions.instructions}, constants: {self.constants})"
+        ins = ""
+        for by in self.instructions.instructions:
+            ins += ", "
+            for b in by:
+                ins += f"{hex(b)} "
+        return f"Compiler(instructions: {ins}, constants: {self.constants})"
 
     @flog
     def compile(self, node: MNode) -> None:
@@ -106,24 +111,38 @@ class Compiler:
                 raise ValueError
 
         elif isinstance(node, MIfExpression):
-            print("compile if")
-            print("condition")
             self.compile(node.condition)
-            print("jump not true")
             jump_not_truthy_pos = self.emit(MOpcode.OpJumpNotTruthy, 65535)
-            print("consequence")
             self.compile(node.consequence)
             if self.last_instruction.opcode == MOpcode.OpPop:
                 self.instructions.pop()
                 self.last_instruction = self.previous_instruction
 
             after_consequence_pos = len(self.instructions)
+            self.instructions.instructions[jump_not_truthy_pos] = Encoder.make(
+                MOpcode.OpJumpNotTruthy, after_consequence_pos
+            )
 
-            print("jump not truthy", self.instructions[jump_not_truthy_pos])
+            if node.alternative is None:
+                after_consequence_pos = len(self.instructions)
+                self.instructions.instructions[jump_not_truthy_pos] = Encoder.make(
+                    MOpcode.OpJumpNotTruthy, after_consequence_pos
+                )
+            else:
+                jump_pos = self.emit(MOpcode.OpJump, 65535)
+                after_consequence_pos = len(self.instructions)
+                self.instructions.instructions[jump_not_truthy_pos] = Encoder.make(
+                    MOpcode.OpJumpNotTruthy, after_consequence_pos
+                )
 
-            self.instructions.instructions[jump_not_truthy_pos] = Encoder.make(MOpcode.OpJumpNotTruthy, after_consequence_pos)
+                self.compile(node.alternative)
+                if self.last_instruction.opcode == MOpcode.OpPop:
+                    self.instructions.pop()
 
-            print("jump not true changed to", self.instructions[jump_not_truthy_pos])
+                after_alternative_pos = len(self.instructions)
+                self.instructions.instructions[jump_pos] = Encoder.make(
+                    MOpcode.OpJump, after_alternative_pos
+                )
 
         elif isinstance(node, MBlockStatement):
             for stmt in node.statements:

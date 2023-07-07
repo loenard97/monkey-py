@@ -52,3 +52,13 @@ def test_prefix() -> None:
     }
 
     run_test(test_input)
+
+
+def test_jumps() -> None:
+    test_input: dict[str, MObject] = {
+        "if (true) { 10; };": MIntegerObject(10),
+        "if (true) { 10; } else { 20; };": MIntegerObject(10),
+        "if (false) { 10; } else { 20; };": MIntegerObject(20),
+    }
+
+    run_test(test_input)
