@@ -2,14 +2,17 @@ from dataclasses import dataclass
 from typing import List
 
 from pymonkey.code.code import Encoder, Instructions, MOpcode
+from pymonkey.compiler.symbol_table import SymbolTable
 from pymonkey.evaluator.mobject import MIntegerObject, MObject
 from pymonkey.parser.mast import (
     MBlockStatement,
     MBooleanExpression,
     MExpressionStatement,
+    MIdentifier,
     MIfExpression,
     MInfixExpression,
     MIntegerExpression,
+    MLetStatement,
     MNode,
     MPrefixExpression,
     MProgram,
@@ -27,12 +30,14 @@ class EmittedInstruction:
 class Compiler:
     instructions: Instructions
     constants: List[MObject]
+    symbol_table: SymbolTable
     last_instruction: EmittedInstruction
     previous_instruction: EmittedInstruction
 
     def __init__(self) -> None:
         self.instructions = Instructions([])
         self.constants = []
+        self.symbol_table = SymbolTable()
         self.last_instruction = EmittedInstruction(MOpcode.OpUndefined, 0)
         self.previous_instruction = EmittedInstruction(MOpcode.OpUndefined, 0)
 
@@ -141,6 +146,17 @@ class Compiler:
         elif isinstance(node, MBlockStatement):
             for stmt in node.statements:
                 self.compile(stmt)
+
+        elif isinstance(node, MLetStatement):
+            self.compile(node.value)
+            symbol_set = self.symbol_table.define(node.name.value)
+            self.emit(MOpcode.OpSetGlobal, symbol_set.index)
+
+        elif isinstance(node, MIdentifier):
+            symbol_get = self.symbol_table.resolve(node.value)
+            if symbol_get is None:
+                raise ValueError("undefined variable", node.value)
+            self.emit(MOpcode.OpGetGlobal, symbol_get.index)
 
         else:
             raise TypeError(f"unknown MObject {node}")

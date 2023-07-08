@@ -59,6 +59,9 @@ class MOpcode(Enum):
 
     OpNull = 0x10
 
+    OpGetGlobal = 0x11
+    OpSetGlobal = 0x12
+
     OpUndefined = 0xFF
 
 
@@ -79,6 +82,8 @@ definitions: dict[str, list[int]] = {
     "OpJumpNotTruthy": [2],
     "OpJump": [2],
     "OpNull": [],
+    "OpGetGlobal": [2],
+    "OpSetGlobal": [2],
     "OpUndefined": [],
 }
 

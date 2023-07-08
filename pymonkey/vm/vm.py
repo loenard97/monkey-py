@@ -20,6 +20,7 @@ class VM:
     stack: List[MObject]
     stack_pointer: int
     last_pop: MObject
+    globals: dict[int, MObject]
 
     def __init__(self, bytecode: Bytecode) -> None:
         self.instructions = bytecode.instructions
@@ -27,6 +28,7 @@ class VM:
         self.stack = []
         self.stack_pointer = 0
         self.last_pop = MNullObject()
+        self.globals = {}
 
     def stack_top(self) -> None | MObject:
         if self.stack_pointer == 0:
@@ -105,6 +107,14 @@ class VM:
 
             elif op == MOpcode.OpNull:
                 self.stack_push(MNullObject())
+
+            elif op == MOpcode.OpSetGlobal:
+                global_index = int.from_bytes(ins[1:], byteorder="big", signed=False)
+                self.globals[global_index] = self.stack_pop()
+
+            elif op == MOpcode.OpGetGlobal:
+                global_index = int.from_bytes(ins[1:], byteorder="big", signed=False)
+                self.stack_push(self.globals[global_index])
 
             else:
                 raise TypeError("unknown op code")

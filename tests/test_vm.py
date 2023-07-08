@@ -1,5 +1,10 @@
 from pymonkey.compiler.compiler import Compiler
-from pymonkey.evaluator.mobject import MBooleanObject, MIntegerObject, MNullObject, MObject
+from pymonkey.evaluator.mobject import (
+    MBooleanObject,
+    MIntegerObject,
+    MNullObject,
+    MObject,
+)
 from pymonkey.lexer.mlexer import MLexer
 from pymonkey.parser.mparser import MParser
 from pymonkey.vm.vm import VM
@@ -60,6 +65,14 @@ def test_jumps() -> None:
         "if (true) { 10; } else { 20; };": MIntegerObject(10),
         "if (false) { 10; } else { 20; };": MIntegerObject(20),
         "if (false) { 10; };": MNullObject(),
+    }
+
+    run_test(test_input)
+
+
+def test_global_let() -> None:
+    test_input: dict[str, MObject] = {
+        "let x = 1; x;": MIntegerObject(1),
     }
 
     run_test(test_input)
