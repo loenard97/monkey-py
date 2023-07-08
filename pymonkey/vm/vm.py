@@ -83,6 +83,8 @@ class VM:
                 operand = self.stack_pop()
                 if isinstance(operand, MBooleanObject):
                     self.stack_push(MBooleanObject(not operand.value))
+                if isinstance(operand, MNullObject):
+                    self.stack_push(MBooleanObject(True))
                 else:
                     self.stack_push(MBooleanObject(False))
 
@@ -100,6 +102,9 @@ class VM:
                 condition = self.stack_pop()
                 if isinstance(condition, MBooleanObject) and not condition.value:
                     ip = pos - 1
+
+            elif op == MOpcode.OpNull:
+                self.stack_push(MNullObject())
 
             else:
                 raise TypeError("unknown op code")

@@ -118,31 +118,25 @@ class Compiler:
                 self.instructions.pop()
                 self.last_instruction = self.previous_instruction
 
+            jump_pos = self.emit(MOpcode.OpJump, 65535)
+
             after_consequence_pos = len(self.instructions)
             self.instructions.instructions[jump_not_truthy_pos] = Encoder.make(
                 MOpcode.OpJumpNotTruthy, after_consequence_pos
             )
 
             if node.alternative is None:
-                after_consequence_pos = len(self.instructions)
-                self.instructions.instructions[jump_not_truthy_pos] = Encoder.make(
-                    MOpcode.OpJumpNotTruthy, after_consequence_pos
-                )
+                self.emit(MOpcode.OpNull)
             else:
-                jump_pos = self.emit(MOpcode.OpJump, 65535)
-                after_consequence_pos = len(self.instructions)
-                self.instructions.instructions[jump_not_truthy_pos] = Encoder.make(
-                    MOpcode.OpJumpNotTruthy, after_consequence_pos
-                )
-
                 self.compile(node.alternative)
                 if self.last_instruction.opcode == MOpcode.OpPop:
                     self.instructions.pop()
+                    self.last_instruction = self.previous_instruction
 
-                after_alternative_pos = len(self.instructions)
-                self.instructions.instructions[jump_pos] = Encoder.make(
-                    MOpcode.OpJump, after_alternative_pos
-                )
+            after_alternative_pos = len(self.instructions)
+            self.instructions.instructions[jump_pos] = Encoder.make(
+                MOpcode.OpJump, after_alternative_pos
+            )
 
         elif isinstance(node, MBlockStatement):
             for stmt in node.statements:

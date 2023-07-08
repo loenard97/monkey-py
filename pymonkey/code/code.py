@@ -57,6 +57,8 @@ class MOpcode(Enum):
     OpJumpNotTruthy = 0x0E
     OpJump = 0x0F
 
+    OpNull = 0x10
+
     OpUndefined = 0xFF
 
 
@@ -76,6 +78,8 @@ definitions: dict[str, list[int]] = {
     "OpBang": [],
     "OpJumpNotTruthy": [2],
     "OpJump": [2],
+    "OpNull": [],
+    "OpUndefined": [],
 }
 
 
