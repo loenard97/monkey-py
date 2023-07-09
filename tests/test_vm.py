@@ -1,9 +1,13 @@
 from pymonkey.compiler.compiler import Compiler
 from pymonkey.evaluator.mobject import (
+    MArrayObject,
     MBooleanObject,
+    MHashMapObject,
     MIntegerObject,
     MNullObject,
     MObject,
+    MStringObject,
+    MValuedObject,
 )
 from pymonkey.lexer.mlexer import MLexer
 from pymonkey.parser.mparser import MParser
@@ -21,6 +25,8 @@ def run_test(test_input: dict[str, MObject]) -> None:
         vm = VM(compiler.bytecode())
         vm.run()
 
+        print(vm.last_pop)
+        print(value)
         assert vm.last_pop == value, f"Test {i} failed"
 
 
@@ -73,6 +79,39 @@ def test_jumps() -> None:
 def test_global_let() -> None:
     test_input: dict[str, MObject] = {
         "let x = 1; x;": MIntegerObject(1),
+    }
+
+    run_test(test_input)
+
+
+def test_string() -> None:
+    test_input: dict[str, MObject] = {
+        '"Hello " + "World"': MStringObject("Hello World"),
+    }
+
+    run_test(test_input)
+
+
+def test_array() -> None:
+    test_input: dict[str, MObject] = {
+        "[]": MArrayObject([]),
+        "[1, 2]": MArrayObject([MIntegerObject(1), MIntegerObject(2)]),
+        "[true, false]": MArrayObject([MBooleanObject(True), MBooleanObject(False)]),
+        "[true, false][1]": MBooleanObject(False),
+    }
+
+    run_test(test_input)
+
+
+def test_hashmap() -> None:
+    hashmap2: dict[MValuedObject, MObject] = {
+        MStringObject("one"): MIntegerObject(1),
+        MStringObject("two"): MIntegerObject(2),
+    }
+    test_input: dict[str, MObject] = {
+        "{}": MHashMapObject({}),
+        '{"one": 1, "two": 2}': MHashMapObject(hashmap2),
+        '{"one": 1, "two": 2}["one"]': MIntegerObject(1),
     }
 
     run_test(test_input)

@@ -3,19 +3,23 @@ from typing import List
 
 from pymonkey.code.code import Encoder, Instructions, MOpcode
 from pymonkey.compiler.symbol_table import SymbolTable
-from pymonkey.evaluator.mobject import MIntegerObject, MObject
+from pymonkey.evaluator.mobject import MIntegerObject, MObject, MStringObject
 from pymonkey.parser.mast import (
+    MArrayExpression,
     MBlockStatement,
     MBooleanExpression,
     MExpressionStatement,
+    MHashMapExpression,
     MIdentifier,
     MIfExpression,
+    MIndexExpression,
     MInfixExpression,
     MIntegerExpression,
     MLetStatement,
     MNode,
     MPrefixExpression,
     MProgram,
+    MStringExpression,
 )
 from pymonkey.util import flog
 
@@ -103,6 +107,10 @@ class Compiler:
             else:
                 self.emit(MOpcode.OpFalse)
 
+        elif isinstance(node, MStringExpression):
+            string = MStringObject(node.value)
+            self.emit(MOpcode.OpConstant, self.add_constant(string))
+
         elif isinstance(node, MPrefixExpression):
             self.compile(node.right)
 
@@ -157,6 +165,22 @@ class Compiler:
             if symbol_get is None:
                 raise ValueError("undefined variable", node.value)
             self.emit(MOpcode.OpGetGlobal, symbol_get.index)
+
+        elif isinstance(node, MArrayExpression):
+            for elem in node.value:
+                self.compile(elem)
+            self.emit(MOpcode.OpArray, len(node.value))
+
+        elif isinstance(node, MHashMapExpression):
+            for key, value in node.pairs.items():
+                self.compile(key)
+                self.compile(value)
+            self.emit(MOpcode.OpHash, len(node.pairs) * 2)
+
+        elif isinstance(node, MIndexExpression):
+            self.compile(node.left)
+            self.compile(node.index)
+            self.emit(MOpcode.OpIndex)
 
         else:
             raise TypeError(f"unknown MObject {node}")

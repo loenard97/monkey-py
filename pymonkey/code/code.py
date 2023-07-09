@@ -62,6 +62,10 @@ class MOpcode(Enum):
     OpGetGlobal = 0x11
     OpSetGlobal = 0x12
 
+    OpArray = 0x13
+    OpHash = 0x14
+    OpIndex = 0x15
+
     OpUndefined = 0xFF
 
 
@@ -84,6 +88,9 @@ definitions: dict[str, list[int]] = {
     "OpNull": [],
     "OpGetGlobal": [2],
     "OpSetGlobal": [2],
+    "OpArray": [2],
+    "OpHash": [2],
+    "OpIndex": [],
     "OpUndefined": [],
 }
 
