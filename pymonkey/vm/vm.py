@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List
 
-from pymonkey.code.code import Instructions, MOpcode
+from pymonkey.code.code import MOpcode
 from pymonkey.compiler.compiler import Bytecode
 from pymonkey.evaluator.mobject import (
     MArrayObject,
@@ -13,52 +13,79 @@ from pymonkey.evaluator.mobject import (
     MStringObject,
     MValuedObject,
 )
+from pymonkey.object.object import CompliedFunction
 from pymonkey.util import flog
+from pymonkey.vm.frame import Frame
 
 
 @dataclass
 class VM:
     constants: List[MObject]
-    instructions: Instructions
     stack: List[MObject]
     stack_pointer: int
     last_pop: MObject
     globals: dict[int, MObject]
+    frames: list[Frame]
+    frames_index: int
 
     def __init__(self, bytecode: Bytecode) -> None:
-        self.instructions = bytecode.instructions
         self.constants = bytecode.constants
         self.stack = []
         self.stack_pointer = 0
         self.last_pop = MNullObject()
         self.globals = {}
+        main_fn = CompliedFunction(bytecode.instructions)
+        main_frame = Frame(main_fn, -1)
+        self.frames = [main_frame]
+        self.frames_index = 1
+
+    def __str__(self) -> str:
+        return f"VM(sp={self.stack_pointer}, stack={self.stack})"
 
     def stack_top(self) -> None | MObject:
         if self.stack_pointer == 0:
             return None
         return self.stack[self.stack_pointer - 1]
 
+    @flog
     def stack_push(self, obj: MObject) -> None:
         self.stack.append(obj)
         self.stack_pointer += 1
 
+    @flog
     def stack_pop(self) -> MObject:
         self.stack_pointer -= 1
         self.last_pop = self.stack.pop()
         return self.last_pop
 
+    def current_frame(self) -> Frame:
+        return self.frames[self.frames_index - 1]
+
+    @flog
+    def push_frame(self, frame: Frame) -> None:
+        self.frames.append(frame)
+        self.frames_index += 1
+
+    @flog
+    def pop_frame(self) -> Frame:
+        self.frames_index -= 1
+        return self.frames.pop(self.frames_index)
+
     @flog
     def run(self) -> None:
         ip = 0
-        while ip < len(self.instructions):
-            ins = self.instructions[ip]
-            if isinstance(ins, list):
-                return
-            op = MOpcode(ins[0])
+        opargs = 0
+        op = MOpcode.OpUndefined
+
+        while self.current_frame().ip < len(self.current_frame().instructions) - 1:
+            self.current_frame().ip += 1
+
+            ip = self.current_frame().ip
+            op = self.current_frame().instructions.get_opcode(ip)
+            opargs = self.current_frame().instructions.get_opargs(ip)
 
             if op == MOpcode.OpConstant:
-                const_index = int.from_bytes(ins[1:], byteorder="big", signed=False)
-                self.stack_push(self.constants[const_index])
+                self.stack_push(self.constants[opargs])
 
             elif (
                 op == MOpcode.OpAdd
@@ -99,44 +126,32 @@ class VM:
                     self.stack_push(MIntegerObject(-operand.value))
 
             elif op == MOpcode.OpJump:
-                pos = int.from_bytes(ins[1:], byteorder="big", signed=False)
-                ip = pos - 1
+                self.current_frame().ip = opargs - 1
 
             elif op == MOpcode.OpJumpNotTruthy:
-                pos = int.from_bytes(ins[1:], byteorder="big", signed=False)
                 condition = self.stack_pop()
                 if isinstance(condition, MBooleanObject) and not condition.value:
-                    ip = pos - 1
+                    self.current_frame().ip = opargs - 1
 
             elif op == MOpcode.OpNull:
                 self.stack_push(MNullObject())
 
             elif op == MOpcode.OpSetGlobal:
-                global_index = int.from_bytes(ins[1:], byteorder="big", signed=False)
-                self.globals[global_index] = self.stack_pop()
+                self.globals[opargs] = self.stack_pop()
 
             elif op == MOpcode.OpGetGlobal:
-                global_index = int.from_bytes(ins[1:], byteorder="big", signed=False)
-                self.stack_push(self.globals[global_index])
+                self.stack_push(self.globals[opargs])
 
             elif op == MOpcode.OpArray:
-                num_elements_array = int.from_bytes(
-                    ins[1:], byteorder="big", signed=False
-                )
-                arr = self.build_array(
-                    self.stack_pointer - num_elements_array, self.stack_pointer
-                )
-                self.stack_pointer -= num_elements_array
+                arr = self.build_array(self.stack_pointer - opargs, self.stack_pointer)
+                self.stack_pointer -= opargs
                 self.stack_push(arr)
 
             elif op == MOpcode.OpHash:
-                num_elements_hash = int.from_bytes(
-                    ins[1:], byteorder="big", signed=False
-                )
                 hashmap = self.build_hashmap(
-                    self.stack_pointer - num_elements_hash, self.stack_pointer
+                    self.stack_pointer - opargs, self.stack_pointer
                 )
-                self.stack_pointer -= num_elements_hash
+                self.stack_pointer -= opargs
                 self.stack_push(hashmap)
 
             elif op == MOpcode.OpIndex:
@@ -144,10 +159,26 @@ class VM:
                 left = self.stack_pop()
                 self.execute_index_expression(left, index)
 
+            elif op == MOpcode.OpCall:
+                fn = self.stack[self.stack_pointer - 1]
+                if not isinstance(fn, CompliedFunction):
+                    raise ValueError("not a function")
+                frame = Frame(fn, -1)
+                self.push_frame(frame)
+
+            elif op == MOpcode.OpReturnValue:
+                return_value = self.stack_pop()
+                self.pop_frame()
+                self.stack_pop()
+                self.stack_push(return_value)
+
+            elif op == MOpcode.OpReturn:
+                self.pop_frame()
+                self.stack_pop()
+                self.stack_push(MNullObject())
+
             else:
                 raise TypeError("unknown op code")
-
-            ip += 1
 
     def execute_binary_operation(self, op: MOpcode) -> None:
         right = self.stack_pop()
@@ -181,12 +212,6 @@ class VM:
     def execute_comparison(self, op: MOpcode) -> None:
         right = self.stack_pop()
         left = self.stack_pop()
-
-        print(type(right), right)
-        print(type(left), left)
-        print(isinstance(right, MValuedObject))
-        print(isinstance(left, MValuedObject))
-        print(hasattr(right, "__lt__"))
 
         if (
             isinstance(right, MValuedObject)

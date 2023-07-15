@@ -28,6 +28,14 @@ class Instructions:
     def __iter__(self) -> Generator[bytearray, None, None]:
         return (ins for ins in self.instructions)
 
+    def get_opcode(self, index: int) -> "MOpcode":
+        return MOpcode(self.instructions[index][0])
+
+    def get_opargs(self, index: int) -> int:
+        return int.from_bytes(
+            self.instructions[index][1:], byteorder="big", signed=False
+        )
+
     def append(self, ins: bytearray) -> None:
         self.instructions.append(ins)
 
@@ -71,6 +79,31 @@ class MOpcode(Enum):
     OpReturn = 0x18
 
     OpUndefined = 0xFF
+
+    @property
+    def arg_length(self) -> int:
+        if (
+            self == MOpcode.OpConstant
+            or self == MOpcode.OpJumpNotTruthy
+            or self == MOpcode.OpJump
+            or self == MOpcode.OpGetGlobal
+            or self == MOpcode.OpSetGlobal
+            or self == MOpcode.OpArray
+            or self == MOpcode.OpHash
+        ):
+            return 2
+        return 0
+
+    def make_bytearray(self, *args: int) -> bytearray:
+        instruction = bytearray()
+        instruction.append(self.value)
+
+        for arg in args:
+            instruction += arg.to_bytes(
+                length=self.arg_length, byteorder="big", signed=False
+            )
+
+        return instruction
 
 
 definitions: dict[str, list[int]] = {

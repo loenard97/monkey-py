@@ -22,6 +22,10 @@ def run_test(test_input: dict[str, MObject]) -> None:
         compiler = Compiler()
         compiler.compile(program)
 
+        print()
+        print(compiler.bytecode().instructions)
+        print()
+
         vm = VM(compiler.bytecode())
         vm.run()
 
@@ -112,6 +116,20 @@ def test_hashmap() -> None:
         "{}": MHashMapObject({}),
         '{"one": 1, "two": 2}': MHashMapObject(hashmap2),
         '{"one": 1, "two": 2}["one"]': MIntegerObject(1),
+    }
+
+    run_test(test_input)
+
+
+def test_function() -> None:
+    test_input: dict[str, MObject] = {
+        "let fivePlusTen = fn() { 5 + 10; }; fivePlusTen();": MIntegerObject(15),
+        "let one = fn() { 1; }; let two = fn() { 2; }; one() + two();": MIntegerObject(
+            3
+        ),
+        "let func = fn() { 5; return 7; }; func();": MIntegerObject(7),
+        "let func = fn() { return 5; return 7; }; func();": MIntegerObject(5),
+        "let func = fn() { }; func();": MNullObject(),
     }
 
     run_test(test_input)

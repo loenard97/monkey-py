@@ -240,7 +240,7 @@ class Compiler:
                     self.scope_index
                 ].last_instruction.opcode = MOpcode.OpReturnValue
             if not self.last_instruction_is(MOpcode.OpReturnValue):
-                self.emit(MOpcode.OpReturnValue)
+                self.emit(MOpcode.OpReturn)
 
             instructions = self.leave_scope()
             compiled_fn = CompliedFunction(instructions)
@@ -251,6 +251,7 @@ class Compiler:
             self.emit(MOpcode.OpCall)
 
         elif isinstance(node, MReturnStatement):
+            print("return stmt")
             self.compile(node.value)
             self.emit(MOpcode.OpReturnValue)
 
