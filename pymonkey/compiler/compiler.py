@@ -4,11 +4,14 @@ from typing import List
 from pymonkey.code.code import Encoder, Instructions, MOpcode
 from pymonkey.compiler.symbol_table import SymbolTable
 from pymonkey.evaluator.mobject import MIntegerObject, MObject, MStringObject
+from pymonkey.object.object import CompliedFunction
 from pymonkey.parser.mast import (
     MArrayExpression,
     MBlockStatement,
     MBooleanExpression,
+    MCallExpression,
     MExpressionStatement,
+    MFunctionExpression,
     MHashMapExpression,
     MIdentifier,
     MIfExpression,
@@ -19,9 +22,16 @@ from pymonkey.parser.mast import (
     MNode,
     MPrefixExpression,
     MProgram,
+    MReturnStatement,
     MStringExpression,
 )
 from pymonkey.util import flog
+
+
+@dataclass
+class Bytecode:
+    instructions: Instructions
+    constants: List[MObject]
 
 
 @dataclass
@@ -31,27 +41,55 @@ class EmittedInstruction:
 
 
 @dataclass
-class Compiler:
+class CompilationScope:
     instructions: Instructions
-    constants: List[MObject]
-    symbol_table: SymbolTable
     last_instruction: EmittedInstruction
     previous_instruction: EmittedInstruction
 
+
+@dataclass
+class Compiler:
+    constants: List[MObject]
+    symbol_table: SymbolTable
+    scopes: List[CompilationScope]
+    scope_index: int
+
     def __init__(self) -> None:
-        self.instructions = Instructions([])
         self.constants = []
         self.symbol_table = SymbolTable()
-        self.last_instruction = EmittedInstruction(MOpcode.OpUndefined, 0)
-        self.previous_instruction = EmittedInstruction(MOpcode.OpUndefined, 0)
+        main_scope = CompilationScope(
+            Instructions([]),
+            EmittedInstruction(MOpcode.OpUndefined, 0),
+            EmittedInstruction(MOpcode.OpUndefined, 0),
+        )
+        self.scopes = [main_scope]
+        self.scope_index = 0
 
     def __str__(self) -> str:
         ins = ""
-        for by in self.instructions.instructions:
+        for by in self.scopes[0].instructions:
             ins += ", "
             for b in by:
                 ins += f"{hex(b)} "
         return f"Compiler(instructions: {ins}, constants: {self.constants})"
+
+    def current_instructions(self) -> Instructions:
+        return self.scopes[self.scope_index].instructions
+
+    def enter_scope(self) -> None:
+        scope = CompilationScope(
+            Instructions([]),
+            EmittedInstruction(MOpcode.OpUndefined, 0),
+            EmittedInstruction(MOpcode.OpUndefined, 0),
+        )
+        self.scopes.append(scope)
+        self.scope_index += 1
+
+    def leave_scope(self) -> Instructions:
+        instructions = self.current_instructions()
+        self.scopes.pop()
+        self.scope_index -= 1
+        return instructions
 
     @flog
     def compile(self, node: MNode) -> None:
@@ -127,27 +165,34 @@ class Compiler:
             self.compile(node.condition)
             jump_not_truthy_pos = self.emit(MOpcode.OpJumpNotTruthy, 65535)
             self.compile(node.consequence)
-            if self.last_instruction.opcode == MOpcode.OpPop:
-                self.instructions.pop()
-                self.last_instruction = self.previous_instruction
+            if self.scopes[self.scope_index].last_instruction.opcode == MOpcode.OpPop:
+                self.current_instructions().instructions.pop()
+                self.scopes[self.scope_index].last_instruction = self.scopes[
+                    self.scope_index
+                ].previous_instruction
 
             jump_pos = self.emit(MOpcode.OpJump, 65535)
 
-            after_consequence_pos = len(self.instructions)
-            self.instructions.instructions[jump_not_truthy_pos] = Encoder.make(
-                MOpcode.OpJumpNotTruthy, after_consequence_pos
-            )
+            after_consequence_pos = len(self.current_instructions().instructions)
+            self.current_instructions().instructions[
+                jump_not_truthy_pos
+            ] = Encoder.make(MOpcode.OpJumpNotTruthy, after_consequence_pos)
 
             if node.alternative is None:
                 self.emit(MOpcode.OpNull)
             else:
                 self.compile(node.alternative)
-                if self.last_instruction.opcode == MOpcode.OpPop:
-                    self.instructions.pop()
-                    self.last_instruction = self.previous_instruction
+                if (
+                    self.scopes[self.scope_index].last_instruction.opcode
+                    == MOpcode.OpPop
+                ):
+                    self.current_instructions().instructions.pop()
+                    self.scopes[self.scope_index].last_instruction = self.scopes[
+                        self.scope_index
+                    ].previous_instruction
 
-            after_alternative_pos = len(self.instructions)
-            self.instructions.instructions[jump_pos] = Encoder.make(
+            after_alternative_pos = len(self.current_instructions().instructions)
+            self.current_instructions().instructions[jump_pos] = Encoder.make(
                 MOpcode.OpJump, after_alternative_pos
             )
 
@@ -182,6 +227,33 @@ class Compiler:
             self.compile(node.index)
             self.emit(MOpcode.OpIndex)
 
+        elif isinstance(node, MFunctionExpression):
+            self.enter_scope()
+            self.compile(node.body)
+
+            if self.last_instruction_is(MOpcode.OpPop):
+                last_pos = self.scopes[self.scope_index].last_instruction.position
+                self.current_instructions().instructions[last_pos] = Encoder.make(
+                    MOpcode.OpReturnValue
+                )
+                self.scopes[
+                    self.scope_index
+                ].last_instruction.opcode = MOpcode.OpReturnValue
+            if not self.last_instruction_is(MOpcode.OpReturnValue):
+                self.emit(MOpcode.OpReturnValue)
+
+            instructions = self.leave_scope()
+            compiled_fn = CompliedFunction(instructions)
+            self.emit(MOpcode.OpConstant, self.add_constant(compiled_fn))
+
+        elif isinstance(node, MCallExpression):
+            self.compile(node.function)
+            self.emit(MOpcode.OpCall)
+
+        elif isinstance(node, MReturnStatement):
+            self.compile(node.value)
+            self.emit(MOpcode.OpReturnValue)
+
         else:
             raise TypeError(f"unknown MObject {node}")
 
@@ -189,14 +261,18 @@ class Compiler:
     def emit(self, op: MOpcode, *operands: int) -> int:
         ins = Encoder.make(op, *operands)
         pos = self.add_instruction(ins)
-        self.previous_instruction = self.last_instruction
-        self.last_instruction = EmittedInstruction(op, pos)
+        self.scopes[self.scope_index].previous_instruction = self.scopes[
+            self.scope_index
+        ].last_instruction
+        self.scopes[self.scope_index].last_instruction = EmittedInstruction(op, pos)
         return pos
 
     @flog
     def add_instruction(self, ins: bytearray) -> int:
-        pos_new_ins = len(self.instructions.instructions)
-        self.instructions.append(ins)
+        pos_new_ins = len(self.current_instructions())
+        updated_ins = self.current_instructions()
+        updated_ins.append(ins)
+        self.scopes[self.scope_index].instructions = updated_ins
         return pos_new_ins
 
     @flog
@@ -204,14 +280,14 @@ class Compiler:
         self.constants.append(obj)
         return len(self.constants) - 1
 
-    def bytecode(self) -> "Bytecode":
-        return Bytecode(self.instructions, self.constants)
+    def last_instruction_is(self, op: MOpcode) -> bool:
+        if not self.current_instructions():
+            return False
+        return self.scopes[self.scope_index].last_instruction.opcode == op
 
-
-@dataclass
-class Bytecode:
-    instructions: Instructions
-    constants: List[MObject]
+    def bytecode(self) -> Bytecode:
+        ins = Instructions(self.current_instructions().instructions)
+        return Bytecode(ins, self.constants)
 
 
 class Decompiler:

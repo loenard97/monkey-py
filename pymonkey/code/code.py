@@ -66,6 +66,10 @@ class MOpcode(Enum):
     OpHash = 0x14
     OpIndex = 0x15
 
+    OpCall = 0x16
+    OpReturnValue = 0x17
+    OpReturn = 0x18
+
     OpUndefined = 0xFF
 
 
@@ -91,6 +95,9 @@ definitions: dict[str, list[int]] = {
     "OpArray": [2],
     "OpHash": [2],
     "OpIndex": [],
+    "OpCall": [],
+    "OpReturnValue": [],
+    "OpReturn": [],
     "OpUndefined": [],
 }
 

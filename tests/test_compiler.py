@@ -29,7 +29,7 @@ def run_test(test_input: dict[str, list]) -> None:
         compiler = Compiler()
         compiler.compile(program)
 
-        assert_instructions(i, compiler.instructions, instructions)
+        assert_instructions(i, compiler.scopes[0].instructions, instructions)
         assert compiler.constants == constants, f"Test {i} failed: wrong constants"
 
 
