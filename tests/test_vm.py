@@ -130,6 +130,12 @@ def test_function() -> None:
         "let func = fn() { 5; return 7; }; func();": MIntegerObject(7),
         "let func = fn() { return 5; return 7; }; func();": MIntegerObject(5),
         "let func = fn() { }; func();": MNullObject(),
+        "let one = fn() { let one = 1; one }; one();": MIntegerObject(1),
+        "let oneAndTwo = fn() { let one = 1; let two = 2; one + two; }; oneAndTwo();": MIntegerObject(
+            3
+        ),
+        "let identity = fn(x) { x; }; identity(10);": MIntegerObject(10),
+        "let sum = fn(x, y) { x + y; }; sum(1, 2);": MIntegerObject(3),
     }
 
     run_test(test_input)

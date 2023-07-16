@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import List
 
 from pymonkey.code.code import Encoder, Instructions, MOpcode
-from pymonkey.compiler.symbol_table import SymbolTable
+from pymonkey.compiler.symbol_table import SymbolScope, SymbolTable
 from pymonkey.evaluator.mobject import MIntegerObject, MObject, MStringObject
 from pymonkey.object.object import CompliedFunction
 from pymonkey.parser.mast import (
@@ -84,11 +84,14 @@ class Compiler:
         )
         self.scopes.append(scope)
         self.scope_index += 1
+        self.symbol_table = SymbolTable(self.symbol_table)
 
     def leave_scope(self) -> Instructions:
         instructions = self.current_instructions()
         self.scopes.pop()
         self.scope_index -= 1
+        if self.symbol_table.outer is not None:
+            self.symbol_table = self.symbol_table.outer
         return instructions
 
     @flog
@@ -203,13 +206,19 @@ class Compiler:
         elif isinstance(node, MLetStatement):
             self.compile(node.value)
             symbol_set = self.symbol_table.define(node.name.value)
-            self.emit(MOpcode.OpSetGlobal, symbol_set.index)
+            if symbol_set.scope == SymbolScope.Global:
+                self.emit(MOpcode.OpSetGlobal, symbol_set.index)
+            else:
+                self.emit(MOpcode.OpSetLocal, symbol_set.index)
 
         elif isinstance(node, MIdentifier):
             symbol_get = self.symbol_table.resolve(node.value)
             if symbol_get is None:
                 raise ValueError("undefined variable", node.value)
-            self.emit(MOpcode.OpGetGlobal, symbol_get.index)
+            if symbol_get.scope == SymbolScope.Global:
+                self.emit(MOpcode.OpGetGlobal, symbol_get.index)
+            else:
+                self.emit(MOpcode.OpGetLocal, symbol_get.index)
 
         elif isinstance(node, MArrayExpression):
             for elem in node.value:
@@ -229,6 +238,12 @@ class Compiler:
 
         elif isinstance(node, MFunctionExpression):
             self.enter_scope()
+
+            for param in node.parameters:
+                if not isinstance(param, MIdentifier):
+                    raise TypeError("function parameter is not an identifier")
+                self.symbol_table.define(param.value)
+
             self.compile(node.body)
 
             if self.last_instruction_is(MOpcode.OpPop):
@@ -242,13 +257,20 @@ class Compiler:
             if not self.last_instruction_is(MOpcode.OpReturnValue):
                 self.emit(MOpcode.OpReturn)
 
+            num_locals = self.symbol_table.num_definitions
             instructions = self.leave_scope()
-            compiled_fn = CompliedFunction(instructions)
+            compiled_fn = CompliedFunction(
+                instructions, num_locals, len(node.parameters)
+            )
             self.emit(MOpcode.OpConstant, self.add_constant(compiled_fn))
 
         elif isinstance(node, MCallExpression):
             self.compile(node.function)
-            self.emit(MOpcode.OpCall)
+
+            for arg in node.arguments:
+                self.compile(arg)
+
+            self.emit(MOpcode.OpCall, len(node.arguments))
 
         elif isinstance(node, MReturnStatement):
             print("return stmt")

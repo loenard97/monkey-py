@@ -8,6 +8,7 @@ from pymonkey.object.object import CompliedFunction
 class Frame:
     function: CompliedFunction
     ip: int
+    base_pointer: int
 
     @property
     def instructions(self) -> Instructions:

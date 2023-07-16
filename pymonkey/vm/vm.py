@@ -34,8 +34,8 @@ class VM:
         self.stack_pointer = 0
         self.last_pop = MNullObject()
         self.globals = {}
-        main_fn = CompliedFunction(bytecode.instructions)
-        main_frame = Frame(main_fn, -1)
+        main_fn = CompliedFunction(bytecode.instructions, -1, 0)
+        main_frame = Frame(main_fn, -1, 0)
         self.frames = [main_frame]
         self.frames_index = 1
 
@@ -160,11 +160,14 @@ class VM:
                 self.execute_index_expression(left, index)
 
             elif op == MOpcode.OpCall:
-                fn = self.stack[self.stack_pointer - 1]
+                fn = self.stack[self.stack_pointer - 1 - opargs]
                 if not isinstance(fn, CompliedFunction):
                     raise ValueError("not a function")
-                frame = Frame(fn, -1)
+                if opargs != fn.num_parameters:
+                    raise ValueError("wrong number of arguments")
+                frame = Frame(fn, -1, self.stack_pointer - opargs)
                 self.push_frame(frame)
+                self.stack_pointer += fn.num_locals
 
             elif op == MOpcode.OpReturnValue:
                 return_value = self.stack_pop()
@@ -175,6 +178,28 @@ class VM:
             elif op == MOpcode.OpReturn:
                 self.pop_frame()
                 self.stack_pop()
+                self.stack_push(MNullObject())
+
+            elif op == MOpcode.OpSetLocal:
+                poped_obj = self.stack_pop()
+                for _ in range(
+                    self.current_frame().base_pointer + opargs - len(self.stack) + 1
+                ):
+                    self.stack_push(MNullObject())
+                self.stack[self.current_frame().base_pointer + opargs] = poped_obj
+
+            elif op == MOpcode.OpGetLocal:
+                self.stack_push(self.stack[self.current_frame().base_pointer + opargs])
+
+            elif op == MOpcode.OpReturnValue:
+                return_value = self.stack_pop()
+                frame = self.pop_frame()
+                self.stack_pointer = frame.base_pointer - 1
+                self.stack_push(return_value)
+
+            elif op == MOpcode.OpReturn:
+                frame = self.pop_frame()
+                self.stack_pointer = frame.base_pointer - 1
                 self.stack_push(MNullObject())
 
             else:

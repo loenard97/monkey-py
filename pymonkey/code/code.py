@@ -78,6 +78,9 @@ class MOpcode(Enum):
     OpReturnValue = 0x17
     OpReturn = 0x18
 
+    OpGetLocal = 0x19
+    OpSetLocal = 0x20
+
     OpUndefined = 0xFF
 
     @property
@@ -128,10 +131,12 @@ definitions: dict[str, list[int]] = {
     "OpArray": [2],
     "OpHash": [2],
     "OpIndex": [],
-    "OpCall": [],
+    "OpCall": [2],
     "OpReturnValue": [],
     "OpReturn": [],
     "OpUndefined": [],
+    "OpGetLocal": [2],
+    "OpSetLocal": [2],
 }
 
 
