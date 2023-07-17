@@ -1,3 +1,4 @@
+import pickle
 from dataclasses import dataclass
 from typing import List
 
@@ -32,6 +33,10 @@ from pymonkey.util import flog
 class Bytecode:
     instructions: Instructions
     constants: List[MObject]
+
+    def to_pickle(self, file_name) -> None:
+        with open(file_name, "wb") as file:
+            pickle.dump(self, file)
 
 
 @dataclass
@@ -312,11 +317,6 @@ class Compiler:
         ins = Instructions(self.current_instructions().instructions)
         return Bytecode(ins, self.constants)
 
-
-class Decompiler:
-    @classmethod
-    def read_operands(cls) -> None:
-        pass
-        # for i, width in enumerate(def.operand_widths):
-        #     if width == 2:
-        #         pass
+    def to_pickle(self, file_path) -> None:
+        with open(file_path, "bw") as file:
+            pickle.dump(self, file)

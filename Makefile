@@ -1,7 +1,9 @@
-.PHONY: all clean activate test lint build
+.PHONY: all clean activate test lint build install
 
 VENV 	= /venv
 PYTHON	= $(VENV)/bin/python
+
+INSTDIR	= /usr/local/bin/monkey
 
 all:
 	@echo "Possible make options:"
@@ -17,6 +19,14 @@ clean:
 
 activate:
 	source $(VENV)/bin/activate
+
+build:
+	python pyinstaller.py
+
+install: build
+	sudo mkdir -p $(INSTDIR)
+	sudo cp ./dist/monkey $(INSTDIR)
+	sudo chmod +x $(INSTDIR)/monkey
 
 test:
 	pytest

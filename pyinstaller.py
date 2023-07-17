@@ -4,7 +4,7 @@ import PyInstaller.__main__
 def build() -> None:
     PyInstaller.__main__.run(
         [
-            "main.py",
+            "monkey.py",
             "--noconfirm",
             "--windowed",
             "--onefile",

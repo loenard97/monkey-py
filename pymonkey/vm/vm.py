@@ -1,5 +1,6 @@
+import pickle
 from dataclasses import dataclass
-from typing import List
+from typing import List, Self
 
 from pymonkey.code.code import MOpcode
 from pymonkey.compiler.compiler import Bytecode
@@ -38,6 +39,13 @@ class VM:
         main_frame = Frame(main_fn, -1, 0)
         self.frames = [main_frame]
         self.frames_index = 1
+
+    @classmethod
+    def from_bytecode_pickle(cls, file_name: str) -> Self:
+        with open(file_name, "br") as file:
+            bytecode = pickle.load(file)
+
+        return VM(bytecode)
 
     def __str__(self) -> str:
         return f"VM(sp={self.stack_pointer}, stack={self.stack})"
